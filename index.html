@@ -1655,6 +1655,7 @@
         .attr('y', -CARD_H/2);
 
       const cardDiv = fo.append('xhtml:div')
+        .attr('xmlns', 'http://www.w3.org/1999/xhtml')
         .attr('class', 'family-card-wrapper');
 
       // Update & Merge
@@ -1706,7 +1707,7 @@
             : '';
 
           return `
-            <div class="family-card gender-${item.gender} ${isSelected ? 'selected' : ''}" id="card-${item.id}">
+            <div xmlns="http://www.w3.org/1999/xhtml" class="family-card gender-${item.gender} ${isSelected ? 'selected' : ''}" id="card-${item.id}">
               <div class="card-avatar" style="background: linear-gradient(135deg, ${grad1}, ${grad2})">${initials}</div>
               <div class="card-info">
                 <div class="card-name" style="display: flex; justify-content: space-between; align-items: center; gap: 4px;">
@@ -1759,7 +1760,7 @@
         })
         .html(d => {
           const isCollapsed = d.data._children !== null;
-          return `<div class="collapse-btn" title="${isCollapsed ? 'Expand branch' : 'Collapse branch'}">${isCollapsed ? '+' : '−'}</div>`;
+          return `<div xmlns="http://www.w3.org/1999/xhtml" class="collapse-btn" title="${isCollapsed ? 'Expand branch' : 'Collapse branch'}">${isCollapsed ? '+' : '−'}</div>`;
         })
         .on('click', (event, d) => {
           event.stopPropagation();

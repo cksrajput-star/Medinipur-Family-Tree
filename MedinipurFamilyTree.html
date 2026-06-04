@@ -1584,56 +1584,34 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     };
     let supabase = null;
     let isDbConnected = false;
+    let createClientFn = null;
 
-    // Helper to load Supabase SDK from CDN dynamically
+    // Helper to load Supabase SDK from CDN dynamically using ES Modules
     function loadSupabaseScript() {
-      return new Promise((resolve, reject) => {
-        if (window.supabase) {
-          resolve();
-          return;
-        }
+      if (createClientFn) return Promise.resolve();
 
-        // Try unpkg first (which defaults to UMD browser bundle)
-        const script = document.createElement('script');
-        script.src = 'https://unpkg.com/@supabase/supabase-js@2';
-        script.onload = () => {
-          if (window.supabase) {
-            resolve();
+      // Try jsDelivr ES module bundle
+      return import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm')
+        .then(module => {
+          if (module && typeof module.createClient === 'function') {
+            createClientFn = module.createClient;
+            window.supabase = { createClient: createClientFn };
           } else {
-            // Fallback to jsDelivr specific UMD bundle path
-            const script2 = document.createElement('script');
-            script2.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-            script2.onload = () => {
-              if (window.supabase) {
-                resolve();
-              } else {
-                reject(new Error("Supabase object not found on window after script load"));
-              }
-            };
-            script2.onerror = () => {
-              reject(new Error("Failed to load fallback Supabase SDK from jsDelivr"));
-            };
-            document.head.appendChild(script2);
+            throw new Error("createClient not found in ES module bundle");
           }
-        };
-        script.onerror = () => {
-          // If unpkg fails completely, fallback to jsDelivr UMD path
-          const script2 = document.createElement('script');
-          script2.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
-          script2.onload = () => {
-            if (window.supabase) {
-              resolve();
-            } else {
-              reject(new Error("Supabase object not found on window after script load"));
-            }
-          };
-          script2.onerror = () => {
-            reject(new Error("Failed to load Supabase SDK from both unpkg and jsDelivr"));
-          };
-          document.head.appendChild(script2);
-        };
-        document.head.appendChild(script);
-      });
+        })
+        .catch(err => {
+          console.error("Failed to load ES module from jsDelivr, trying unpkg +esm fallback", err);
+          return import('https://unpkg.com/@supabase/supabase-js@2/+esm')
+            .then(module => {
+              if (module && typeof module.createClient === 'function') {
+                createClientFn = module.createClient;
+                window.supabase = { createClient: createClientFn };
+              } else {
+                throw new Error("createClient not found in fallback ES module");
+              }
+            });
+        });
     }
 
     // Initialize Supabase Client
@@ -1644,8 +1622,8 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       if (url && key) {
         try {
           await loadSupabaseScript();
-          if (window.supabase && typeof window.supabase.createClient === 'function') {
-            supabase = window.supabase.createClient(url, key);
+          if (createClientFn) {
+            supabase = createClientFn(url, key);
             isDbConnected = true;
             updateDbStatusIndicator('connected');
           } else {
@@ -1734,7 +1712,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       showLoadingOverlay(true, "Connecting & verifying table...");
       try {
         await loadSupabaseScript();
-        const testClient = window.supabase.createClient(url, key);
+        const testClient = createClientFn(url, key);
         const { error } = await testClient
           .from(table)
           .select('count', { count: 'exact', head: true });
@@ -1772,7 +1750,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       showLoadingOverlay(true, "Testing connection...");
       try {
         await loadSupabaseScript();
-        const testClient = window.supabase.createClient(url, key);
+        const testClient = createClientFn(url, key);
         const { error } = await testClient
           .from(table)
           .select('count', { count: 'exact', head: true });

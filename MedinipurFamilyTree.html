@@ -1,0 +1,2790 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Singh Vansh – Medinipur Family Tree</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- D3.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+
+  <style>
+    /* ── DESIGN SYSTEM & STYLING ── */
+    :root {
+      /* Dark Theme Variables (Default) */
+      --bg-app: #060913;
+      --bg-sidebar: rgba(13, 19, 36, 0.85);
+      --bg-panel: rgba(18, 26, 48, 0.9);
+      --bg-card: rgba(22, 33, 62, 0.7);
+      --bg-card-hover: rgba(30, 45, 84, 0.95);
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-color-hover: rgba(255, 255, 255, 0.16);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-inverse: #0f172a;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-rgb: 99, 102, 241;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.5);
+      --glass-blur: blur(16px);
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      /* Gender Colors */
+      --color-male: #3b82f6;
+      --color-male-light: rgba(59, 130, 246, 0.15);
+      --color-female: #ec4899;
+      --color-female-light: rgba(236, 72, 153, 0.15);
+      --color-unknown: #64748b;
+      --color-unknown-light: rgba(100, 116, 139, 0.15);
+    }
+
+    [data-theme="light"] {
+      /* Light Theme Variables */
+      --bg-app: #f4f6fa;
+      --bg-sidebar: rgba(255, 255, 255, 0.85);
+      --bg-panel: rgba(255, 255, 255, 0.95);
+      --bg-card: rgba(255, 255, 255, 0.9);
+      --bg-card-hover: #ffffff;
+      --border-color: rgba(0, 0, 0, 0.06);
+      --border-color-hover: rgba(0, 0, 0, 0.12);
+      --text-main: #0f172a;
+      --text-muted: #64748b;
+      --text-inverse: #f8fafc;
+      --accent: #059669;
+      --accent-hover: #047857;
+      --accent-rgb: 5, 150, 105;
+      --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.05);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
+      --shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.12);
+      
+      /* Gender Colors (softer for light mode) */
+      --color-male: #2563eb;
+      --color-male-light: rgba(37, 99, 235, 0.1);
+      --color-female: #db2777;
+      --color-female-light: rgba(219, 39, 119, 0.1);
+      --color-unknown: #475569;
+      --color-unknown-light: rgba(71, 85, 105, 0.1);
+    }
+
+    /* ── BASE SETUP ── */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-app);
+      color: var(--text-main);
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      transition: background-color 0.3s;
+    }
+
+    /* ── LAYOUT STRUCTURE ── */
+    .app-container {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 60px);
+      position: relative;
+    }
+
+    /* ── HEADER ── */
+    header {
+      height: 60px;
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .header-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .header-logo svg {
+      width: 28px;
+      height: 28px;
+      fill: var(--accent);
+    }
+
+    .header-logo h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      background: linear-gradient(120deg, var(--text-main) 60%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .header-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* ── BUTTON STYLES ── */
+    .btn {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: var(--transition);
+    }
+
+    .btn:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+      box-shadow: 0 0 10px rgba(var(--accent-rgb), 0.15);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: var(--text-inverse);
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+      border-color: var(--accent-hover);
+      color: var(--text-inverse);
+      box-shadow: 0 0 15px rgba(var(--accent-rgb), 0.3);
+    }
+
+    .btn-icon {
+      width: 36px;
+      height: 36px;
+      padding: 0;
+      justify-content: center;
+      border-radius: 8px;
+    }
+
+    .btn-active {
+      background: var(--accent) !important;
+      color: var(--text-inverse) !important;
+      border-color: var(--accent) !important;
+    }
+
+    /* ── SIDEBAR (LEFT) ── */
+    .sidebar {
+      width: 320px;
+      background: var(--bg-sidebar);
+      backdrop-filter: var(--glass-blur);
+      border-right: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s;
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .sidebar.collapsed {
+      width: 0;
+      transform: translateX(-320px);
+      border-right: none;
+    }
+
+    .sidebar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .sidebar-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-muted);
+    }
+
+    .sidebar-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--border-color-hover);
+      border-radius: 3px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-muted);
+    }
+
+    /* ── SEARCH & FILTER ── */
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 36px 10px 14px;
+      border-radius: 10px;
+      font-size: 13px;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .search-input:focus {
+      border-color: var(--accent);
+      background: rgba(0, 0, 0, 0.25);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.1);
+    }
+
+    .search-icon {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      pointer-events: none;
+      width: 16px;
+      height: 16px;
+    }
+
+    .search-clear {
+      position: absolute;
+      right: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-muted);
+      cursor: pointer;
+      width: 16px;
+      height: 16px;
+      display: none;
+    }
+
+    .search-clear:hover {
+      color: var(--text-main);
+    }
+
+    /* ── PANEL SECTIONS ── */
+    .panel-section {
+      background: rgba(0, 0, 0, 0.1);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .panel-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .panel-section-title svg {
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ── STATS DASHBOARD ── */
+    .stats-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .stat-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      padding: 10px 14px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-val {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .stat-lbl {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-top: 4px;
+    }
+
+    .gender-bar {
+      display: flex;
+      height: 8px;
+      border-radius: 4px;
+      overflow: hidden;
+      margin-top: 12px;
+      background: var(--border-color);
+    }
+
+    .gender-bar-male { background: var(--color-male); transition: var(--transition); }
+    .gender-bar-female { background: var(--color-female); transition: var(--transition); }
+    .gender-bar-other { background: var(--color-unknown); transition: var(--transition); }
+
+    .gender-legend {
+      display: flex;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-top: 6px;
+    }
+    
+    .gender-legend span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .gender-legend span::before {
+      content: '';
+      display: inline-block;
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .legend-male::before { background: var(--color-male); }
+    .legend-female::before { background: var(--color-female); }
+
+    /* ── CLAN BRANCHES ── */
+    .branch-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 150px;
+      overflow-y: auto;
+    }
+
+    .branch-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 6px;
+      font-size: 12px;
+      background: var(--bg-card);
+      cursor: pointer;
+      transition: var(--transition);
+      border: 1px solid transparent;
+    }
+
+    .branch-item:hover {
+      border-color: var(--accent);
+      background: var(--bg-card-hover);
+    }
+
+    /* ── CANVAS AREA (CENTER) ── */
+    .canvas-area {
+      flex: 1;
+      position: relative;
+      background-color: var(--bg-app);
+      overflow: hidden;
+    }
+
+    #tree-svg {
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    #tree-svg:active {
+      cursor: grabbing;
+    }
+
+    /* ── ZOOM & CANVAS CONTROLS ── */
+    .canvas-controls {
+      position: absolute;
+      bottom: 20px;
+      left: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 40;
+    }
+
+    .zoom-controls {
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: var(--shadow-md);
+    }
+
+    .zoom-btn {
+      width: 38px;
+      height: 38px;
+      background: transparent;
+      border: none;
+      color: var(--text-main);
+      font-size: 16px;
+      font-weight: 500;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: var(--transition);
+    }
+
+    .zoom-btn:hover {
+      background: var(--border-color-hover);
+      color: var(--accent);
+    }
+
+    .zoom-btn:not(:last-child) {
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    /* ── D3 GRAPH GRAPHICS ── */
+    .link {
+      fill: none;
+      stroke: var(--border-color-hover);
+      stroke-width: 2px;
+      transition: stroke 0.3s, stroke-width 0.3s, opacity 0.3s;
+      opacity: 0.5;
+    }
+
+    .link.highlight-ancestor {
+      stroke: var(--accent) !important;
+      stroke-width: 3px;
+      opacity: 1;
+    }
+    
+    .link.search-match {
+      stroke: #fbbf24 !important;
+      stroke-width: 3px;
+      opacity: 1;
+    }
+
+    .node-group {
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* ── FAMILY NODE CARD (FOREIGN OBJECT) ── */
+    .family-card-wrapper {
+      padding: 4px;
+      width: 100%;
+      height: 100%;
+    }
+
+    .family-card {
+      width: 100%;
+      height: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px 10px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      position: relative;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      overflow: hidden;
+    }
+
+    .family-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+      background: var(--color-unknown);
+      transition: var(--transition);
+    }
+
+    .family-card.gender-male::before { background: var(--color-male); }
+    .family-card.gender-female::before { background: var(--color-female); }
+
+    .family-card:hover {
+      background: var(--bg-card-hover);
+      border-color: var(--accent);
+      box-shadow: var(--shadow-md), 0 0 10px rgba(var(--accent-rgb), 0.15);
+      transform: translateY(-2px);
+    }
+
+    .family-card.selected {
+      border-color: var(--accent) !important;
+      background: var(--bg-card-hover);
+      box-shadow: var(--shadow-lg), 0 0 15px rgba(var(--accent-rgb), 0.25);
+    }
+    
+    .family-card.search-highlight {
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 15px rgba(251, 191, 36, 0.4);
+    }
+
+    .family-card.highlight-ancestor {
+      border-color: var(--accent);
+      box-shadow: 0 0 12px rgba(var(--accent-rgb), 0.2);
+    }
+
+    .card-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      font-weight: 700;
+      color: white;
+      text-transform: uppercase;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #4f46e5, #06b6d4);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-info {
+      flex: 1;
+      min-width: 0; /* allows text truncation */
+    }
+
+    .card-name {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .card-subtext {
+      font-size: 9px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .card-location-badge {
+      position: absolute;
+      top: 4px;
+      right: 6px;
+      font-size: 7.5px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      padding: 1px 4px;
+      border-radius: 4px;
+      color: var(--text-muted);
+      max-width: 50px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    /* ── EXPAND / COLLAPSE BUTTONS ── */
+    .collapse-btn {
+      position: absolute;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: var(--shadow-sm);
+      transition: var(--transition);
+      z-index: 10;
+    }
+
+    .collapse-btn:hover {
+      background: var(--accent);
+      color: var(--text-inverse);
+      border-color: var(--accent);
+      transform: scale(1.1);
+    }
+
+    /* ── INSPECTOR PANEL (RIGHT) ── */
+    .inspector {
+      width: 320px;
+      background: var(--bg-sidebar);
+      backdrop-filter: var(--glass-blur);
+      border-left: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s;
+      z-index: 50;
+      flex-shrink: 0;
+    }
+
+    .inspector.collapsed {
+      width: 0;
+      transform: translateX(320px);
+      border-left: none;
+    }
+
+    .inspector-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .inspector-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .inspector-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .inspector-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .inspector-avatar {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 700;
+      color: white;
+      margin-bottom: 12px;
+      box-shadow: var(--shadow-md);
+      background: linear-gradient(135deg, var(--accent), #10b981);
+    }
+
+    .inspector-name {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .inspector-nickname {
+      font-size: 12px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .inspector-details {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .detail-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px dashed var(--border-color);
+      font-size: 13px;
+    }
+
+    .detail-label {
+      color: var(--text-muted);
+    }
+
+    .detail-value {
+      font-weight: 500;
+      color: var(--text-main);
+      max-width: 160px;
+      text-align: right;
+      word-break: break-word;
+    }
+
+    .detail-value.relation-link {
+      color: var(--accent);
+      cursor: pointer;
+      text-decoration: underline;
+      text-decoration-style: dotted;
+    }
+    .detail-value.relation-link:hover {
+      color: var(--accent-hover);
+    }
+
+    .inspector-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: auto;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    .btn-danger {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.2);
+      color: #f87171;
+    }
+
+    .btn-danger:hover {
+      background: #ef4444;
+      border-color: #ef4444;
+      color: white;
+      box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+    }
+
+    /* ── CONTEXT MENU ── */
+    #ctx-menu {
+      position: fixed;
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 6px 0;
+      min-width: 170px;
+      z-index: 999;
+      box-shadow: var(--shadow-lg);
+      display: none;
+    }
+
+    .ctx-item {
+      padding: 10px 16px;
+      font-size: 13px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      color: var(--text-main);
+      transition: var(--transition);
+    }
+
+    .ctx-item:hover {
+      background: var(--accent);
+      color: var(--text-inverse);
+    }
+    
+    .ctx-item:hover svg {
+      stroke: var(--text-inverse);
+    }
+
+    .ctx-item svg {
+      width: 14px;
+      height: 14px;
+      color: var(--text-muted);
+      stroke-width: 2.5px;
+    }
+
+    .ctx-sep {
+      height: 1px;
+      background: var(--border-color);
+      margin: 4px 0;
+    }
+
+    .ctx-item.danger {
+      color: #f87171;
+    }
+
+    .ctx-item.danger:hover {
+      background: #ef4444;
+      color: white;
+    }
+
+    /* ── MODALS & FORMS ── */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.2s ease-out;
+    }
+
+    .modal-overlay.open {
+      display: flex;
+      opacity: 1;
+    }
+
+    .modal {
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 24px;
+      width: 420px;
+      max-width: 90vw;
+      box-shadow: var(--shadow-lg);
+      transform: scale(0.9);
+      transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    .modal-overlay.open .modal {
+      transform: scale(1);
+    }
+
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--text-main);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 10px;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    .form-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      margin-bottom: 6px;
+    }
+
+    .form-input, .form-select {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 10px 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    .form-input:focus, .form-select:focus {
+      border-color: var(--accent);
+      background: rgba(0, 0, 0, 0.25);
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .modal-buttons {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    /* ── TOAST ── */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translate(-50%, 50px);
+      background: var(--bg-panel);
+      backdrop-filter: var(--glass-blur);
+      border: 1px solid var(--accent);
+      color: var(--text-main);
+      padding: 12px 24px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 500;
+      z-index: 2000;
+      opacity: 0;
+      pointer-events: none;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .toast.show {
+      transform: translate(-50%, 0);
+      opacity: 1;
+    }
+    
+    .toast-icon {
+      color: var(--accent);
+      width: 16px;
+      height: 16px;
+    }
+
+    /* ── UTILITIES ── */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 20px;
+    }
+    .empty-state svg {
+      width: 48px;
+      height: 48px;
+      color: var(--border-color-hover);
+      margin-bottom: 12px;
+    }
+
+    .no-data-msg {
+      font-size: 12px;
+      margin-top: 4px;
+    }
+
+    .btn-badge {
+      background: var(--border-color-hover);
+      padding: 2px 6px;
+      border-radius: 12px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    .history-controls {
+      display: flex;
+      gap: 6px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <header>
+    <div class="header-logo">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 6V18" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 10C8.5 11 9.5 12 12 12C14.5 12 15.5 11 16 10" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 14C8.5 13 9.5 12 12 12C14.5 12 15.5 13 16 14" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <h1>Singh Vansh · Medinipur</h1>
+    </div>
+
+    <div class="header-controls">
+      <!-- Layout Switchers -->
+      <button class="btn btn-icon btn-active" id="layout-horiz" title="Horizontal Tree" onclick="changeLayout('horizontal')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18" stroke-linecap="round"/></svg>
+      </button>
+      <button class="btn btn-icon" id="layout-vert" title="Vertical Tree" onclick="changeLayout('vertical')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 3v18M6 3v18M18 3v18" stroke-linecap="round"/></svg>
+      </button>
+      <button class="btn btn-icon" id="layout-radial" title="Radial Tree" onclick="changeLayout('radial')">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+
+      <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+
+      <!-- Undo / Redo -->
+      <div class="history-controls">
+        <button class="btn btn-icon" id="btn-undo" title="Undo (Ctrl+Z)" onclick="undo()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 7v6h6M21 17a9 9 0 00-9-9 9 9 0 00-6 2.3L3 13" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="btn btn-icon" id="btn-redo" title="Redo (Ctrl+Y)" onclick="redo()">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 7v6h-6M3 17a9 9 0 019-9 9 9 0 016 2.3l3 2.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+
+      <!-- Add Member -->
+      <button class="btn btn-primary" onclick="openAddModal(null, 'child')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+        Add Member
+      </button>
+
+      <!-- Help / Sharing Guide -->
+      <button class="btn btn-icon" id="help-toggle" title="Sharing & Saving Help" onclick="openHelpModal()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 16v-4m0-4h.01M22 12a10 10 0 11-20 0 10 10 0 0120 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      <!-- Theme Switcher -->
+      <button class="btn btn-icon" id="theme-toggle" title="Toggle Theme" onclick="toggleTheme()">
+        <svg class="sun-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="display:none;"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" stroke-linecap="round"/></svg>
+        <svg class="moon-icon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- App Container -->
+  <div class="app-container">
+
+    <!-- Left Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="sidebar-title">Controls & Info</span>
+        <button class="btn btn-icon" style="border:none; background:transparent;" onclick="toggleSidebar()" title="Collapse Sidebar">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 19l-7-7 7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+      </div>
+
+      <div class="sidebar-content">
+        <!-- Search -->
+        <div class="search-wrapper">
+          <input type="text" class="search-input" id="search-input" placeholder="Search members by name..." oninput="handleSearch(this.value)">
+          <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+          <svg class="search-clear" id="search-clear" onclick="clearSearch()" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+        </div>
+
+        <!-- Tree Operations -->
+        <div class="panel-section">
+          <div class="panel-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" stroke-linecap="round"/></svg>
+            Tree Options
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+            <button class="btn" onclick="expandAll()" style="justify-content: center;">⊞ Expand All</button>
+            <button class="btn" onclick="collapseAll()" style="justify-content: center;">⊟ Collapse All</button>
+          </div>
+        </div>
+
+        <!-- Statistics Dashboard -->
+        <div class="panel-section">
+          <div class="panel-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Family Statistics
+          </div>
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-val" id="stat-total-members">-</div>
+              <div class="stat-lbl">Total Members</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-val" id="stat-generations">-</div>
+              <div class="stat-lbl">Generations</div>
+            </div>
+          </div>
+          
+          <div class="gender-bar">
+            <div class="gender-bar-male" id="gender-bar-male" style="width: 50%;"></div>
+            <div class="gender-bar-female" id="gender-bar-female" style="width: 50%;"></div>
+            <div class="gender-bar-other" id="gender-bar-other" style="width: 0%;"></div>
+          </div>
+          <div class="gender-legend">
+            <span class="legend-male" id="gender-legend-male">Male: -</span>
+            <span class="legend-female" id="gender-legend-female">Female: -</span>
+          </div>
+        </div>
+
+        <!-- Clan Branches -->
+        <div class="panel-section">
+          <div class="panel-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2a10 10 0 100 20 10 10 0 000-20z M12 6v6l4 2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Lineage Branches
+          </div>
+          <div class="branch-list" id="branch-list">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Data Import/Export -->
+        <div class="panel-section">
+          <div class="panel-section-title">
+            <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Data Management
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <button class="btn" onclick="exportJSON()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export JSON Data
+            </button>
+            <button class="btn" onclick="document.getElementById('import-file').click()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Import JSON Data
+            </button>
+            <input type="file" id="import-file" style="display:none;" accept=".json" onchange="importJSON(event)">
+            
+            <button class="btn" onclick="exportHTML()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" stroke-linecap="round"/></svg>
+              Export Standalone HTML
+            </button>
+            
+            <button class="btn" onclick="exportSVG()">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Download Tree Image (SVG)
+            </button>
+            
+            <button class="btn btn-danger" onclick="resetToDefaultData()" style="margin-top: 8px;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Reset to Original Data
+            </button>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Sidebar Toggle (Floating Button when sidebar is closed) -->
+    <button class="btn btn-icon" id="sidebar-toggle-floating" style="position: absolute; left: 15px; top: 15px; z-index: 45; display: none;" onclick="toggleSidebar()" title="Expand Sidebar">
+      <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
+
+    <!-- Main Canvas Area -->
+    <main class="canvas-area" id="canvas-container">
+      <svg id="tree-svg">
+        <g id="links-group"></g>
+        <g id="nodes-group"></g>
+      </svg>
+
+      <!-- Zoom and Fit Controls -->
+      <div class="canvas-controls">
+        <div class="zoom-controls">
+          <button class="zoom-btn" onclick="zoomIn()" title="Zoom In">+</button>
+          <button class="zoom-btn" onclick="zoomOut()" title="Zoom Out">−</button>
+          <button class="zoom-btn" onclick="fitView()" title="Fit Tree to Screen">⊙</button>
+        </div>
+      </div>
+    </main>
+
+    <!-- Right Inspector Panel -->
+    <aside class="inspector collapsed" id="inspector">
+      <div class="inspector-header">
+        <span class="inspector-title">Member Details</span>
+        <button class="btn btn-icon" style="border:none; background:transparent;" onclick="closeInspector()" title="Close Details">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12" stroke-linecap="round"/></svg>
+        </button>
+      </div>
+
+      <div class="inspector-content" id="inspector-content">
+        <!-- Rendered dynamically -->
+      </div>
+    </aside>
+
+  </div>
+
+  <!-- Context Menu -->
+  <div id="ctx-menu">
+    <div class="ctx-item" onclick="handleCtxAction('add-child')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+      Add Child
+    </div>
+    <div class="ctx-item" onclick="handleCtxAction('add-sibling')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" stroke-linecap="round"/></svg>
+      Add Sibling
+    </div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item" onclick="handleCtxAction('edit')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" stroke-linecap="round"/></svg>
+      Edit Member Info
+    </div>
+    <div class="ctx-sep"></div>
+    <div class="ctx-item danger" onclick="handleCtxAction('delete')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Delete Member
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal-overlay" id="modal-overlay" onclick="if(event.target===this) closeModal()">
+    <div class="modal">
+      <h3 class="modal-title" id="modal-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" stroke-linecap="round"/></svg>
+        Add Member
+      </h3>
+      
+      <form id="member-form" onsubmit="saveMember(event)">
+        <div class="form-group">
+          <label for="member-name">Full Name *</label>
+          <input type="text" id="member-name" class="form-input" required placeholder="e.g. Ramesh Kumar Singh">
+        </div>
+        
+        <div class="form-row">
+          <div class="form-group">
+            <label for="member-nickname">Nickname / Alias</label>
+            <input type="text" id="member-nickname" class="form-input" placeholder="e.g. Pappu Baba">
+          </div>
+          <div class="form-group">
+            <label for="member-gender">Gender</label>
+            <select id="member-gender" class="form-select">
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other / Unknown</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="member-spouse">Spouse Name</label>
+          <input type="text" id="member-spouse" class="form-input" placeholder="e.g. Shanti Devi">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="member-birth">Birth Year</label>
+            <input type="number" id="member-birth" class="form-input" min="1700" max="2100" placeholder="e.g. 1954">
+          </div>
+          <div class="form-group">
+            <label for="member-death">Death Year</label>
+            <input type="number" id="member-death" class="form-input" min="1700" max="2100" placeholder="e.g. 2012">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="member-location">Location / Village</label>
+            <input type="text" id="member-location" class="form-input" placeholder="e.g. Morsarai">
+          </div>
+          <div class="form-group">
+            <label for="member-parent">Parent</label>
+            <select id="member-parent" class="form-select">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="member-notes">Biography / Notes</label>
+          <textarea id="member-notes" class="form-input" rows="2" style="resize:vertical;" placeholder="Add occupation, education, or family history..."></textarea>
+        </div>
+
+        <div class="modal-buttons">
+          <button type="button" class="btn" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="modal-submit-btn">Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Help Modal -->
+  <div class="modal-overlay" id="help-modal-overlay" onclick="if(event.target===this) closeHelpModal()">
+    <div class="modal" style="width: 500px; max-width: 90vw;">
+      <h3 class="modal-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 16v-4m0-4h.01M22 12a10 10 0 11-20 0 10 10 0 0120 0z" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Sharing & Saving Guide
+      </h3>
+      
+      <div style="font-size: 13px; line-height: 1.6; color: var(--text-main); display: flex; flex-direction: column; gap: 16px;">
+        <p>This Family Tree application is <strong>100% standalone</strong> and does not require any external Excel sheets to run. All data is embedded directly in this HTML file.</p>
+        
+        <div style="background: rgba(var(--accent-rgb), 0.08); border-left: 4px solid var(--accent); padding: 12px; border-radius: 8px;">
+          <h4 style="font-weight: 600; margin-bottom: 4px; color: var(--accent);">How to Save Changes</h4>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">
+            Web browsers prevent web pages from editing files directly on your hard drive for safety. When you add, edit, or delete members:
+          </p>
+          <ol style="margin-left: 18px; font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px;">
+            <li>Your changes are saved temporarily in your browser's local cache.</li>
+            <li>To make them permanent, click <strong>"Export Standalone HTML"</strong> in the sidebar. This downloads a new <code>MedinipurFamilyTree.html</code> containing all your updates.</li>
+            <li>Replace your original HTML file with the newly downloaded file.</li>
+          </ol>
+        </div>
+
+        <div style="background: rgba(16, 185, 129, 0.08); border-left: 4px solid #10b981; padding: 12px; border-radius: 8px;">
+          <h4 style="font-weight: 600; margin-bottom: 4px; color: #10b981;">How to Share with Family</h4>
+          <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">
+            This is a portable app that can be shared instantly:
+          </p>
+          <ul style="margin-left: 18px; font-size: 12px; color: var(--text-muted); display: flex; flex-direction: column; gap: 4px; list-style-type: disc;">
+            <li>Send the latest <code>MedinipurFamilyTree.html</code> file to your family members via <strong>WhatsApp, Email, or Google Drive</strong>.</li>
+            <li>They can open the file directly on any phone, tablet, or computer browser—no setups or apps required!</li>
+            <li>If they make changes, they can download the updated file using the same export button and send it back to you.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="modal-buttons" style="margin-top: 24px; border-top: 1px solid var(--border-color); padding-top: 16px;">
+        <button type="button" class="btn btn-primary" onclick="closeHelpModal()" style="margin-left: auto;">Got it!</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast" id="toast">
+    <svg class="toast-icon" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+      <path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span id="toast-message">Success! Changes saved.</span>
+  </div>
+
+  <!-- RAW DATA STORAGE -->
+  <script>
+    /* DATA_START */
+    const RAW_NODES = [{"id":1,"name":"Shivnath Singh","col":0,"parent_id":null},{"id":2,"name":"Ram Baksh Singh","col":1,"parent_id":1},{"id":3,"name":"Jiv Narayan Singh","col":1,"parent_id":1},{"id":4,"name":"Shudhi Singh","col":1,"parent_id":1},{"id":5,"name":"Davkal Singh","col":1,"parent_id":1},{"id":6,"name":"Laxman Singh","col":1,"parent_id":1},{"id":7,"name":"Prasan Singh","col":1,"parent_id":1},{"id":8,"name":"Sovran Singh","col":1,"parent_id":1},{"id":9,"name":"Sugandh Singh","col":2,"parent_id":8},{"id":10,"name":"Bhagwaan Singh","col":2,"parent_id":8},{"id":11,"name":"Sugreev Singh","col":2,"parent_id":8},{"id":12,"name":"Dev Charan Singh","col":3,"parent_id":11},{"id":13,"name":"Bayas Singh","col":4,"parent_id":12},{"id":14,"name":"Rajkumar Singh","col":4,"parent_id":12},{"id":15,"name":"Shuji Singh","col":4,"parent_id":12},{"id":16,"name":"Maharaj Singh","col":4,"parent_id":12},{"id":17,"name":"Karmdev Singh (Karmu baba)","col":5,"parent_id":16},{"id":18,"name":"Ramanuj Singh (w/Jhalak Devi)","col":6,"parent_id":17},{"id":19,"name":"Vijay Bahadur Singh (w/Devwarti)","col":7,"parent_id":18},{"id":20,"name":"Bir Bahadur (w/Anu)","col":8,"parent_id":19},{"id":21,"name":"Avika","col":9,"parent_id":20},{"id":22,"name":"Anaya","col":9,"parent_id":20},{"id":23,"name":"Dhir Bahadur","col":8,"parent_id":19},{"id":24,"name":"Pritam (w/Minakshi)","col":8,"parent_id":19},{"id":25,"name":"Swastik","col":9,"parent_id":24},{"id":26,"name":"Vandana(h/Ranjeet Singh)","col":8,"parent_id":19},{"id":27,"name":"Amyra","col":9,"parent_id":26},{"id":28,"name":"Shail (Bikarma Singh)","col":7,"parent_id":18},{"id":29,"name":"Abhishek Singh (w/Renu)","col":8,"parent_id":28},{"id":30,"name":"Ayush","col":9,"parent_id":29},{"id":31,"name":"Ashish","col":9,"parent_id":29},{"id":32,"name":"Monalisa","col":9,"parent_id":29},{"id":33,"name":"Vivek Singh (w/Roshini)","col":8,"parent_id":28},{"id":34,"name":"Kanha","col":9,"parent_id":33},{"id":35,"name":"Babita (h/Pappu)","col":8,"parent_id":28},{"id":36,"name":"Divyansh","col":9,"parent_id":35},{"id":37,"name":"Khushi","col":9,"parent_id":35},{"id":38,"name":"Neetu (h/Neeraj Singh)","col":8,"parent_id":28},{"id":39,"name":"Ramayan Singh (w/Kunti Devi)","col":6,"parent_id":17},{"id":40,"name":"Upalendu(w/Urmila)","col":7,"parent_id":39},{"id":41,"name":"Monika","col":8,"parent_id":40},{"id":42,"name":"Vishal","col":8,"parent_id":40},{"id":43,"name":"Rahul(w/Rita)","col":7,"parent_id":39},{"id":44,"name":"Om","col":8,"parent_id":43},{"id":45,"name":"Riya","col":8,"parent_id":43},{"id":46,"name":"Ishwar(w/Manisha)","col":7,"parent_id":39},{"id":47,"name":"Abhinav","col":8,"parent_id":46},{"id":48,"name":"Shreya","col":8,"parent_id":46},{"id":49,"name":"Ayodhya Prasad Singh (w/Gita Singh)","col":6,"parent_id":17},{"id":50,"name":"Amit Singh (w/Kalpana Singh)","col":7,"parent_id":49},{"id":51,"name":"Shaswita Singh","col":8,"parent_id":50},{"id":52,"name":"Akshat Singh","col":8,"parent_id":50},{"id":53,"name":"Sumit Singh (w/Baby Kumari)","col":7,"parent_id":49},{"id":54,"name":"Soumil Siddharth","col":8,"parent_id":53},{"id":55,"name":"Pareman(Morsarai) (h/Ram Avtar Singh)","col":6,"parent_id":17},{"id":56,"name":"Ashok","col":7,"parent_id":55},{"id":57,"name":"Pammi","col":7,"parent_id":55},{"id":58,"name":"Jhalak (Sadokhar)(h/Dhramdev Singh)","col":6,"parent_id":17},{"id":59,"name":"Parashuram Singh","col":7,"parent_id":58},{"id":60,"name":"Kamala Singh","col":7,"parent_id":58},{"id":61,"name":"Hridaya (Siladi)(h/Griha Singh)","col":6,"parent_id":17},{"id":62,"name":"Mahendra Singh","col":7,"parent_id":61},{"id":63,"name":"Draupadi (Hoontar) (h/Nilambar Singh)","col":6,"parent_id":17},{"id":64,"name":"Mukul (w/Anamika)","col":7,"parent_id":63},{"id":65,"name":"Indu","col":7,"parent_id":63},{"id":66,"name":"Rajni","col":7,"parent_id":63},{"id":67,"name":"Chandraman Singh (w/Devwarti Devi)","col":5,"parent_id":16},{"id":68,"name":"Ram Niwas Singh (w/Champakali)","col":6,"parent_id":67},{"id":69,"name":"Anil Kishore Rasik (w/Pushpa Rana)","col":7,"parent_id":68},{"id":70,"name":"Jayshree Rasik(h/Bittu Kumar Singh)","col":8,"parent_id":69},{"id":71,"name":"Preisha","col":9,"parent_id":70},{"id":72,"name":"Rajshree Rasik (h/Mitranjan Kumar)","col":8,"parent_id":69},{"id":73,"name":"Olly","col":9,"parent_id":72},{"id":74,"name":"Prakhar","col":9,"parent_id":72},{"id":75,"name":"Animesh Gaurav(w/ Khushboo)","col":8,"parent_id":69},{"id":76,"name":"Arun Pratap Singh (w/Sunita)","col":7,"parent_id":68},{"id":77,"name":"Anshul","col":8,"parent_id":76},{"id":78,"name":"Apurva (h/Abhijeet)","col":8,"parent_id":76},{"id":79,"name":"Binay Prapat Singh (w/Anjali Singh)","col":7,"parent_id":68},{"id":80,"name":"Anaya","col":8,"parent_id":79},{"id":81,"name":"Akansha","col":8,"parent_id":79},{"id":82,"name":"Anshika","col":8,"parent_id":79},{"id":83,"name":"Anupam Singh","col":8,"parent_id":79},{"id":84,"name":"Chinta Devi (h/Surenadra Singh)","col":7,"parent_id":68},{"id":85,"name":"Rinki","col":8,"parent_id":84},{"id":86,"name":"Pinki","col":8,"parent_id":84},{"id":87,"name":"Rakhi","col":8,"parent_id":84},{"id":88,"name":"Ambika Prasad Singh (w/Jagmatadevi)","col":6,"parent_id":67},{"id":89,"name":"Vidya Singh (h/Binod Singh)","col":7,"parent_id":88},{"id":90,"name":"Honey (w/Abha)","col":8,"parent_id":89},{"id":91,"name":"Arabhya","col":9,"parent_id":90},{"id":92,"name":"Sunny","col":8,"parent_id":89},{"id":93,"name":"Sandhya Singh (h/Yogesh Singh)","col":7,"parent_id":88},{"id":94,"name":"Akansha (h/Vaibhav Gehlot)","col":8,"parent_id":93},{"id":95,"name":"Aviroj","col":9,"parent_id":94},{"id":96,"name":"Aditi (h/Suryasekhar)","col":8,"parent_id":93},{"id":97,"name":"Ashish","col":8,"parent_id":93},{"id":98,"name":"Ravi Ranjan Prakash (w/Nirvika)","col":7,"parent_id":88},{"id":99,"name":"Samriddhi","col":8,"parent_id":98},{"id":100,"name":"Sangita Singh (h/Praveen Singh)","col":7,"parent_id":88},{"id":101,"name":"Krishna","col":8,"parent_id":100},{"id":102,"name":"Vaishnavi","col":8,"parent_id":100},{"id":103,"name":"Shashi","col":7,"parent_id":88},{"id":104,"name":"Kamta Prasad Singh (w/Saraswati Devi)","col":6,"parent_id":67},{"id":105,"name":"Sushila(h/Arvind)","col":7,"parent_id":104},{"id":106,"name":"Chandan Singh (w/Payal)","col":8,"parent_id":105},{"id":107,"name":"Shambhavi Singh","col":9,"parent_id":106},{"id":108,"name":"Chandra kant Singh (w/Priya)","col":8,"parent_id":105},{"id":109,"name":"Surya Pratap Singh","col":9,"parent_id":108},{"id":110,"name":"Sunita(h/Ranjeet)","col":7,"parent_id":104},{"id":111,"name":"Kumar Venkatesh (w/Tridha Singh)","col":8,"parent_id":110},{"id":112,"name":"Kumari Ankita(h/Sachit)","col":8,"parent_id":110},{"id":113,"name":"Sudama Prasad Singh (w/Laccho Devi)","col":6,"parent_id":67},{"id":114,"name":"Rabinder Singh (w/Geeta Singh)","col":7,"parent_id":113},{"id":115,"name":"Prateek","col":8,"parent_id":114},{"id":116,"name":"Gitanjali","col":8,"parent_id":114},{"id":117,"name":"Mansi","col":8,"parent_id":114},{"id":118,"name":"Joginder Singh (w/Jyoti)","col":7,"parent_id":113},{"id":119,"name":"Sonia","col":8,"parent_id":118},{"id":120,"name":"Tanya","col":8,"parent_id":118},{"id":121,"name":"Deepak(w/Laxmi)","col":7,"parent_id":113},{"id":122,"name":"Isha","col":8,"parent_id":121},{"id":123,"name":"Ritwick","col":8,"parent_id":121},{"id":124,"name":"Dipender (w/Deepti)","col":7,"parent_id":113},{"id":125,"name":"Dev","col":8,"parent_id":124},{"id":126,"name":"Darsha","col":8,"parent_id":124}];
+    /* DATA_END */
+  </script>
+
+  <!-- JS APPLICATION CODE -->
+  <script>
+    // ═══════════════════════════════════════════════════════════
+    //  GLOBAL STATE
+    // ═══════════════════════════════════════════════════════════
+    let familyData = [];      // Cleaned and parsed flat list of nodes
+    let selectedNode = null;  // Node currently selected (object)
+    let ctxNode = null;       // Node target of right-click context menu (object)
+    let modalMode = null;     // 'add-child' | 'add-sibling' | 'edit'
+    
+    // Collapsed nodes tracking
+    let collapsedIds = new Set();
+    
+    // Undo / Redo Stacks
+    let historyStack = [];
+    let redoStack = [];
+
+    // Layout configuration
+    let layoutMode = 'horizontal'; // 'horizontal' | 'vertical' | 'radial'
+    const CARD_W = 180;
+    const CARD_H = 50;
+    const ROW_SPACING = 90;   // Distance between generations
+    const COL_SPACING = 210;  // Width of column offsets
+
+    // Generation visual mapping colors (gradients & borders)
+    const GEN_GRADIENTS = [
+      ['#c2410c', '#ea580c'], // Gen 1 (Orange/Red)
+      ['#b45309', '#d97706'], // Gen 2
+      ['#6d28d9', '#8b5cf6'], // Gen 3
+      ['#1d4ed8', '#3b82f6'], // Gen 4
+      ['#047857', '#10b981'], // Gen 5
+      ['#0369a1', '#0ea5e9'], // Gen 6
+      ['#be185d', '#ec4899'], // Gen 7
+      ['#4d7c0f', '#84cc16'], // Gen 8
+      ['#a21caf', '#d946ef'], // Gen 9
+      ['#451a03', '#78350f']  // Gen 10
+    ];
+
+    // ═══════════════════════════════════════════════════════════
+    //  METADATA SMART PARSER
+    // ═══════════════════════════════════════════════════════════
+    function parseRawNode(raw) {
+      // If node is already parsed (from loaded JSON / edits), skip parsing
+      if (raw.isParsed) return raw;
+
+      let name = raw.name.trim();
+      let spouse = "";
+      let gender = "unknown";
+      let nickname = "";
+      let location = "";
+
+      // 1. Extract spouse info (w/Name) or (h/Name)
+      const spouseMatch = name.match(/\(([wh])\/(.+?)\)/);
+      if (spouseMatch) {
+        const type = spouseMatch[1];
+        spouse = spouseMatch[2].trim();
+        gender = type === 'w' ? 'male' : 'female';
+        name = name.replace(/\(([wh])\/.+?\)/, "").trim();
+      }
+
+      // 2. Extract location or nickname in parentheses: Name(Morsarai) or Name(Karmu baba)
+      const parentheticalMatches = name.match(/\((.+?)\)/g);
+      if (parentheticalMatches) {
+        parentheticalMatches.forEach(match => {
+          const inner = match.slice(1, -1).trim();
+          // Check if it is a village location
+          const villages = ["morsarai", "sadokhar", "siladi", "hoontar", "miladi"];
+          if (villages.some(v => inner.toLowerCase().includes(v))) {
+            location = inner;
+          } else {
+            nickname = inner;
+          }
+          name = name.replace(match, "").trim();
+        });
+      }
+
+      // Clean up extra spaces
+      name = name.replace(/\s+/g, " ");
+
+      // 3. Fallback gender deduction based on common ending names
+      if (gender === "unknown") {
+        const lowerName = name.toLowerCase();
+        const femaleEnds = ["devi", "kumari", "anjali", "tanya", "sonia", "riya", "preisha", "olly", "mansi", "gitanjali", "darsha", "isha", "shreya", "shaswita", "monika", "khushi", "anaya", "avika", "amyra", "vandana", "monalisa", "babita", "neetu", "indu", "rajni", "kamala", "draupadi", "jhalak", "hridaya", "pareman", "akansha", "shambhavi", "ankita", "sunita", "sushila", "chinta", "sangita", "sandhya", "vidya", "jayshree", "rajshree", "pammi", "preisha", "apurva", "preisha"];
+        
+        if (femaleEnds.some(end => lowerName.endsWith(end))) {
+          gender = "female";
+        } else {
+          gender = "male"; // default to male for this specific family lineage representation
+        }
+      }
+
+      return {
+        id: raw.id,
+        name: name,
+        parent_id: raw.parent_id,
+        gender: gender,
+        spouse: spouse,
+        nickname: nickname,
+        location: location,
+        notes: raw.notes || "",
+        birthYear: raw.birthYear || "",
+        deathYear: raw.deathYear || "",
+        isLiving: raw.deathYear ? false : true,
+        isParsed: true
+      };
+    }
+
+    // Load initial data
+    function initData() {
+      const stored = localStorage.getItem('medinipur_family_tree_v2');
+      if (stored) {
+        try {
+          familyData = JSON.parse(stored);
+          return;
+        } catch(e) {
+          console.error("Failed to parse storage, loading default data", e);
+        }
+      }
+      // Parse from raw nodes
+      familyData = RAW_NODES.map(parseRawNode);
+      saveToStorage();
+    }
+
+    function saveToStorage() {
+      localStorage.setItem('medinipur_family_tree_v2', JSON.stringify(familyData));
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  D3 HIERARCHY BUILDER
+    // ═══════════════════════════════════════════════════════════
+    function buildTreeHierarchy() {
+      if (familyData.length === 0) return null;
+      
+      const map = {};
+      familyData.forEach(node => {
+        map[node.id] = { 
+          ...node, 
+          children: [], 
+          _children: null // For D3 collapsing
+        };
+      });
+
+      let root = null;
+      familyData.forEach(node => {
+        const item = map[node.id];
+        if (node.parent_id === null || !map[node.parent_id]) {
+          // If no parent or parent doesn't exist, treat as root (or first ancestor)
+          if (!root) root = item;
+        } else {
+          map[node.parent_id].children.push(item);
+        }
+      });
+
+      // Handle collapsed nodes states
+      function applyCollapseState(node) {
+        if (collapsedIds.has(node.id)) {
+          node._children = node.children;
+          node.children = null;
+        }
+        const activeChildren = node.children || node._children || [];
+        activeChildren.forEach(applyCollapseState);
+      }
+      
+      if (root) applyCollapseState(root);
+      return root;
+    }
+
+    // Calculate details
+    function getDescendantCount(node) {
+      let count = 0;
+      const children = node.children || node._children || [];
+      count += children.length;
+      children.forEach(c => {
+        count += getDescendantCount(c);
+      });
+      return count;
+    }
+
+    function findFlatNode(id) {
+      return familyData.find(n => n.id === parseInt(id));
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  D3 CANVAS RENDERING
+    // ═══════════════════════════════════════════════════════════
+    const svgEl = d3.select('#tree-svg');
+    const linksGroup = d3.select('#links-group');
+    const nodesGroup = d3.select('#nodes-group');
+    
+    // Zoom behavior
+    const zoom = d3.zoom()
+      .scaleExtent([0.1, 3.5])
+      .on('zoom', (event) => {
+        linksGroup.attr('transform', event.transform);
+        nodesGroup.attr('transform', event.transform);
+      });
+      
+    svgEl.call(zoom).on('dblclick.zoom', null);
+
+    // Render loop
+    function renderTree() {
+      const rootData = buildTreeHierarchy();
+      if (!rootData) {
+        nodesGroup.html(`<g class="empty-state"><text y="20" text-anchor="middle" fill="var(--text-muted)">No family nodes found. Add a member to begin.</text></g>`);
+        linksGroup.html('');
+        updateStats();
+        return;
+      }
+
+      // Build hierarchy
+      const root = d3.hierarchy(rootData);
+      
+      // Determine size & run layout
+      if (layoutMode === 'horizontal') {
+        const d3Tree = d3.tree().nodeSize([CARD_H + 24, COL_SPACING]);
+        d3Tree(root);
+      } else if (layoutMode === 'vertical') {
+        const d3Tree = d3.tree().nodeSize([CARD_W + 30, ROW_SPACING + 40]);
+        d3Tree(root);
+      } else if (layoutMode === 'radial') {
+        const d3Tree = d3.tree().size([360, Math.min(window.innerWidth, window.innerHeight) * 0.45]);
+        d3Tree(root);
+      }
+
+      const nodes = root.descendants();
+      const links = root.links();
+
+      // Adjust positions based on layout
+      nodes.forEach(d => {
+        if (layoutMode === 'horizontal') {
+          // Normal horizontal tree: depth corresponds to X, sibling index to Y
+          d.targetX = d.y;
+          d.targetY = d.x;
+        } else if (layoutMode === 'vertical') {
+          // Vertical tree: depth corresponds to Y, sibling index to X
+          d.targetX = d.x;
+          d.targetY = d.y;
+        } else if (layoutMode === 'radial') {
+          // Radial tree: map polar coordinates (angle, radius) to cartesian
+          const angle = (d.x - 90) * Math.PI / 180;
+          const radius = d.y;
+          d.targetX = radius * Math.cos(angle);
+          d.targetY = radius * Math.sin(angle);
+        }
+      });
+
+      // ── DRAW LINKS ──
+      const linkSelection = linksGroup.selectAll('.link')
+        .data(links, d => d.target.data.id);
+
+      // Exit
+      linkSelection.exit().remove();
+
+      // Enter & Merge
+      linkSelection.enter().append('path')
+        .attr('class', 'link')
+        .merge(linkSelection)
+        .transition().duration(400)
+        .attr('d', d => {
+          const s = d.source;
+          const t = d.target;
+          
+          if (layoutMode === 'horizontal') {
+            const startX = s.targetX + CARD_W/2;
+            const startY = s.targetY;
+            const endX = t.targetX - CARD_W/2;
+            const endY = t.targetY;
+            return `M${startX},${startY} C${(startX + endX)/2},${startY} ${(startX + endX)/2},${endY} ${endX},${endY}`;
+          } else if (layoutMode === 'vertical') {
+            const startX = s.targetX;
+            const startY = s.targetY + CARD_H/2;
+            const endX = t.targetX;
+            const endY = t.targetY - CARD_H/2;
+            return `M${startX},${startY} C${startX},${(startY + endY)/2} ${endX},${(startY + endY)/2} ${endX},${endY}`;
+          } else {
+            // Radial layout link
+            const startAngle = (s.x - 90) * Math.PI / 180;
+            const startR = s.y;
+            const endAngle = (t.x - 90) * Math.PI / 180;
+            const endR = t.y;
+            
+            const sx = startR * Math.cos(startAngle);
+            const sy = startR * Math.sin(startAngle);
+            const tx = endR * Math.cos(endAngle);
+            const ty = endR * Math.sin(endAngle);
+            
+            // Nice smooth bezier curve back to center
+            return `M${sx},${sy} C${(sx + tx)/2},${(sy + ty)/2} ${(sx + tx)/2},${(sy + ty)/2} ${tx},${ty}`;
+          }
+        });
+
+      // ── DRAW NODES ──
+      const nodeSelection = nodesGroup.selectAll('.node-group')
+        .data(nodes, d => d.data.id);
+
+      // Exit
+      nodeSelection.exit().remove();
+
+      // Enter
+      const nodeEnter = nodeSelection.enter().append('g')
+        .attr('class', 'node-group')
+        .attr('transform', d => `translate(${d.targetX}, ${d.targetY})`);
+
+      // Add HTML Card using foreignObject
+      const fo = nodeEnter.append('foreignObject')
+        .attr('width', CARD_W)
+        .attr('height', CARD_H)
+        .attr('x', -CARD_W/2)
+        .attr('y', -CARD_H/2);
+
+      const cardDiv = fo.append('xhtml:div')
+        .attr('class', 'family-card-wrapper');
+
+      // Update & Merge
+      const nodeAll = nodeEnter.merge(nodeSelection);
+      
+      // Animate to new positions
+      nodeAll.transition().duration(400)
+        .attr('transform', d => {
+          if (layoutMode === 'radial') {
+            // Rotate card text outward so it's readable
+            const rotation = d.x < 180 ? d.x - 90 : d.x + 90;
+            // Radial layout cards can be rotated or horizontal. Horizontal is easier to read, let's keep them horizontal but offset.
+            // Keeping them horizontal:
+            return `translate(${d.targetX}, ${d.targetY})`;
+          }
+          return `translate(${d.targetX}, ${d.targetY})`;
+        });
+
+      // Render inner HTML cards dynamically
+      nodeAll.select('foreignObject').select('.family-card-wrapper')
+        .html(d => {
+          const item = d.data;
+          const isSelected = selectedNode && selectedNode.id === item.id;
+          
+          // Generate initials
+          const nameParts = item.name.split(" ");
+          const initials = nameParts.length > 1 
+            ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]) 
+            : nameParts[0][0];
+
+          // Determine subtext
+          let subtext = "";
+          if (item.spouse) {
+            subtext = `<svg width="8" height="8" fill="currentColor" viewBox="0 0 24 24" style="margin-right:2px;color:var(--color-female);"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>${truncateText(item.spouse, 16)}`;
+          } else if (item.nickname) {
+            subtext = `"${truncateText(item.nickname, 18)}"`;
+          } else if (item.birthYear) {
+            subtext = `b. ${item.birthYear}`;
+          } else {
+            subtext = "View details";
+          }
+
+          // Gradients based on generation
+          const genIdx = d.depth % GEN_GRADIENTS.length;
+          const [grad1, grad2] = GEN_GRADIENTS[genIdx];
+
+          const locationBadge = item.location 
+            ? `<div class="card-location-badge">${item.location}</div>` 
+            : '';
+
+          return `
+            <div class="family-card gender-${item.gender} ${isSelected ? 'selected' : ''}" id="card-${item.id}">
+              <div class="card-avatar" style="background: linear-gradient(135deg, ${grad1}, ${grad2})">${initials}</div>
+              <div class="card-info">
+                <div class="card-name">${truncateText(item.name, 18)}</div>
+                <div class="card-subtext">${subtext}</div>
+              </div>
+              ${locationBadge}
+            </div>
+          `;
+        });
+
+      // Bind node interactions
+      nodeAll.select('foreignObject')
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          selectNodeCard(d.data);
+          hideContextMenu();
+        })
+        .on('contextmenu', (event, d) => {
+          event.preventDefault();
+          event.stopPropagation();
+          showContextMenu(event, d.data);
+        })
+        .on('dblclick', (event, d) => {
+          event.stopPropagation();
+          openEditModal(d.data);
+        });
+
+      // ── COLLAPSE / EXPAND JUNCTIONS ──
+      // Render floating toggle buttons at the junctions of children
+      nodeAll.selectAll('.collapse-btn-group').remove();
+      
+      const collapsableNodes = nodeAll.filter(d => (d.data.children && d.data.children.length > 0) || d.data._children);
+      
+      const btnGroup = collapsableNodes.append('g')
+        .attr('class', 'collapse-btn-group');
+
+      // Place toggle button depending on layout orientation
+      btnGroup.append('foreignObject')
+        .attr('width', 20)
+        .attr('height', 20)
+        .attr('x', d => {
+          if (layoutMode === 'horizontal') return CARD_W/2 - 6;
+          return -10;
+        })
+        .attr('y', d => {
+          if (layoutMode === 'horizontal') return -10;
+          return CARD_H/2 - 6;
+        })
+        .html(d => {
+          const isCollapsed = d.data._children !== null;
+          return `<div class="collapse-btn" title="${isCollapsed ? 'Expand branch' : 'Collapse branch'}">${isCollapsed ? '+' : '−'}</div>`;
+        })
+        .on('click', (event, d) => {
+          event.stopPropagation();
+          toggleNodeBranch(d.data.id);
+        });
+
+      updateStats();
+    }
+
+    function toggleNodeBranch(id) {
+      if (collapsedIds.has(id)) {
+        collapsedIds.delete(id);
+      } else {
+        collapsedIds.add(id);
+      }
+      renderTree();
+    }
+
+    function truncateText(str, n) {
+      return (str.length > n) ? str.slice(0, n - 1) + '…' : str;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  SELECTION & PATH HIGHLIGHTING
+    // ═══════════════════════════════════════════════════════════
+    function selectNodeCard(node) {
+      selectedNode = node;
+      
+      // Update highlights in DOM instantly without slow D3 re-draw
+      document.querySelectorAll('.family-card').forEach(el => {
+        el.classList.remove('selected');
+      });
+      const cardEl = document.getElementById(`card-${node.id}`);
+      if (cardEl) cardEl.classList.add('selected');
+
+      // Expand right inspector
+      showInspector(node);
+      
+      // Highlight ancestral path
+      highlightAncestralPath(node.id);
+    }
+
+    function highlightAncestralPath(nodeId) {
+      // Clear previous path highlights
+      d3.selectAll('.link').classed('highlight-ancestor', false);
+      d3.selectAll('.family-card').classed('highlight-ancestor', false);
+
+      if (!nodeId) return;
+
+      const path = [];
+      let currentId = nodeId;
+      
+      while (currentId !== null) {
+        path.push(currentId);
+        const node = findFlatNode(currentId);
+        currentId = node ? node.parent_id : null;
+      }
+
+      // Add classes to nodes and links in the path
+      path.forEach(id => {
+        const el = document.getElementById(`card-${id}`);
+        if (el) el.classList.add('highlight-ancestor');
+      });
+
+      d3.selectAll('.link').classed('highlight-ancestor', d => {
+        return path.includes(d.target.data.id);
+      });
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CANVAS NAVIGATION CONTROLS
+    // ═══════════════════════════════════════════════════════════
+    function zoomIn() {
+      svgEl.transition().duration(250).call(zoom.scaleBy, 1.3);
+    }
+
+    function zoomOut() {
+      svgEl.transition().duration(250).call(zoom.scaleBy, 0.77);
+    }
+
+    function fitView() {
+      const bounds = nodesGroup.node().getBBox();
+      const parent = svgEl.node();
+      if (!bounds.width || !parent) return;
+
+      const fullWidth = parent.clientWidth || parent.getBoundingClientRect().width;
+      const fullHeight = parent.clientHeight || parent.getBoundingClientRect().height;
+
+      const width = bounds.width;
+      const height = bounds.height;
+      const midX = bounds.x + width / 2;
+      const midY = bounds.y + height / 2;
+
+      // Pad view
+      const padding = 0.85;
+      const scale = Math.min(padding * fullWidth / width, padding * fullHeight / height, 1.3);
+
+      svgEl.transition().duration(750).call(
+        zoom.transform,
+        d3.zoomIdentity.translate(fullWidth / 2 - scale * midX, fullHeight / 2 - scale * midY).scale(scale)
+      );
+    }
+
+    function changeLayout(mode) {
+      layoutMode = mode;
+      
+      // Update UI active layouts
+      document.querySelectorAll('[id^="layout-"]').forEach(btn => {
+        btn.classList.remove('btn-active');
+      });
+      if (mode === 'horizontal') document.getElementById('layout-horiz').classList.add('btn-active');
+      if (mode === 'vertical') document.getElementById('layout-vert').classList.add('btn-active');
+      if (mode === 'radial') document.getElementById('layout-radial').classList.add('btn-active');
+
+      renderTree();
+      setTimeout(fitView, 100);
+      showToast(`Layout switched to ${mode}`);
+    }
+
+    function expandAll() {
+      collapsedIds.clear();
+      renderTree();
+      showToast("Expanded all generations");
+    }
+
+    function collapseAll() {
+      // Collapse everything from Generation 2 downwards
+      const rootNode = buildTreeHierarchy();
+      if (!rootNode) return;
+
+      collapsedIds.clear();
+      
+      const children = rootNode.children || rootNode._children || [];
+      children.forEach(c => {
+        collapsedIds.add(c.id);
+      });
+
+      renderTree();
+      showToast("Collapsed to root ancestors");
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  SIDEBAR CONTROLS & DASHBOARD
+    // ═══════════════════════════════════════════════════════════
+    function toggleSidebar() {
+      const sidebar = document.getElementById('sidebar');
+      const floatingBtn = document.getElementById('sidebar-toggle-floating');
+      sidebar.classList.toggle('collapsed');
+      
+      if (sidebar.classList.contains('collapsed')) {
+        floatingBtn.style.display = 'flex';
+      } else {
+        floatingBtn.style.display = 'none';
+      }
+      
+      setTimeout(fitView, 350); // Redraw layout fit
+    }
+
+    function updateStats() {
+      document.getElementById('stat-total-members').textContent = familyData.length;
+      
+      // Compute generation count (max depth)
+      let maxDepth = 0;
+      const rootData = buildTreeHierarchy();
+      
+      if (rootData) {
+        const root = d3.hierarchy(rootData);
+        maxDepth = d3.max(root.descendants(), d => d.depth) + 1;
+      }
+      document.getElementById('stat-generations').textContent = maxDepth || 0;
+
+      // Gender stats
+      const males = familyData.filter(n => n.gender === 'male').length;
+      const females = familyData.filter(n => n.gender === 'female').length;
+      const others = familyData.length - males - females;
+
+      const total = familyData.length || 1;
+      const pMale = (males / total) * 100;
+      const pFemale = (females / total) * 100;
+      const pOther = (others / total) * 100;
+
+      document.getElementById('gender-bar-male').style.width = `${pMale}%`;
+      document.getElementById('gender-bar-female').style.width = `${pFemale}%`;
+      document.getElementById('gender-bar-other').style.width = `${pOther}%`;
+
+      document.getElementById('gender-legend-male').textContent = `Male: ${males} (${Math.round(pMale)}%)`;
+      document.getElementById('gender-legend-female').textContent = `Female: ${females} (${Math.round(pFemale)}%)`;
+
+      // Populate branches (Gen 2 nodes)
+      populateClanBranches(rootData);
+    }
+
+    function populateClanBranches(rootNode) {
+      const container = document.getElementById('branch-list');
+      container.innerHTML = '';
+      
+      if (!rootNode) return;
+      
+      const branches = rootNode.children || rootNode._children || [];
+      if (branches.length === 0) {
+        container.innerHTML = `<div class="no-data-msg" style="color:var(--text-muted);font-size:11px;">No branches available.</div>`;
+        return;
+      }
+
+      branches.forEach(b => {
+        const descendants = getDescendantCount(b);
+        const el = document.createElement('div');
+        el.className = 'branch-item';
+        el.innerHTML = `
+          <span>Clan of <strong>${b.name}</strong></span>
+          <span class="btn-badge">${descendants + 1} members</span>
+        `;
+        el.onclick = () => {
+          // Select & center on the branch root
+          const flatNode = findFlatNode(b.id);
+          if (flatNode) {
+            selectNodeCard(flatNode);
+            // Pan to this node card
+            zoomToNode(b.id);
+          }
+        };
+        container.appendChild(el);
+      });
+    }
+
+    function zoomToNode(id) {
+      // Find matching D3 hierarchy node coordinates
+      const rootData = buildTreeHierarchy();
+      if (!rootData) return;
+      const root = d3.hierarchy(rootData);
+      
+      // Determine positions based on current layout
+      if (layoutMode === 'horizontal') {
+        d3.tree().nodeSize([CARD_H + 24, COL_SPACING])(root);
+      } else if (layoutMode === 'vertical') {
+        d3.tree().nodeSize([CARD_W + 30, ROW_SPACING + 40])(root);
+      } else if (layoutMode === 'radial') {
+        d3.tree().size([360, Math.min(window.innerWidth, window.innerHeight) * 0.45])(root);
+      }
+
+      const match = root.descendants().find(d => d.data.id === id);
+      if (match) {
+        let x = match.y;
+        let y = match.x;
+        
+        if (layoutMode === 'vertical') {
+          x = match.x;
+          y = match.y;
+        } else if (layoutMode === 'radial') {
+          const angle = (match.x - 90) * Math.PI / 180;
+          x = match.y * Math.cos(angle);
+          y = match.y * Math.sin(angle);
+        }
+
+        const parent = svgEl.node();
+        const fullWidth = parent.clientWidth;
+        const fullHeight = parent.clientHeight;
+
+        svgEl.transition().duration(600).call(
+          zoom.transform,
+          d3.zoomIdentity.translate(fullWidth / 2 - 1.2 * x, fullHeight / 2 - 1.2 * y).scale(1.2)
+        );
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  SEARCH OPERATIONS
+    // ═══════════════════════════════════════════════════════════
+    let searchTimeout;
+    function handleSearch(query) {
+      clearTimeout(searchTimeout);
+      const q = query.trim().toLowerCase();
+      
+      const clearBtn = document.getElementById('search-clear');
+      clearBtn.style.display = q ? 'block' : 'none';
+
+      searchTimeout = setTimeout(() => {
+        // Clear highlights
+        d3.selectAll('.family-card').classed('search-highlight', false);
+        d3.selectAll('.link').classed('search-match', false);
+
+        if (!q) return;
+
+        // Find matches
+        const matches = familyData.filter(n => 
+          n.name.toLowerCase().includes(q) || 
+          n.nickname.toLowerCase().includes(q) || 
+          n.location.toLowerCase().includes(q) || 
+          n.spouse.toLowerCase().includes(q)
+        );
+
+        if (matches.length > 0) {
+          // Highlight nodes in tree
+          matches.forEach(m => {
+            const card = document.getElementById(`card-${m.id}`);
+            if (card) card.classList.add('search-highlight');
+          });
+
+          // Zoom to the first matched card
+          zoomToNode(matches[0].id);
+          selectNodeCard(matches[0]);
+        }
+      }, 250);
+    }
+
+    function clearSearch() {
+      document.getElementById('search-input').value = '';
+      document.getElementById('search-clear').style.display = 'none';
+      d3.selectAll('.family-card').classed('search-highlight', false);
+      d3.selectAll('.link').classed('search-match', false);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  RIGHT INSPECTOR PANEL
+    // ═══════════════════════════════════════════════════════════
+    function showInspector(node) {
+      const panel = document.getElementById('inspector');
+      panel.classList.remove('collapsed');
+
+      const content = document.getElementById('inspector-content');
+      
+      const nameParts = node.name.split(" ");
+      const initials = nameParts.length > 1 
+        ? (nameParts[0][0] + nameParts[nameParts.length - 1][0]) 
+        : nameParts[0][0];
+
+      // Format bio notes
+      const notesHtml = node.notes 
+        ? `<div class="detail-row" style="flex-direction:column;align-items:flex-start;gap:4px;">
+             <span class="detail-label">Biography / Notes</span>
+             <span class="detail-value" style="text-align:left;max-width:100%;font-size:12px;color:var(--text-muted);">${node.notes}</span>
+           </div>`
+        : '';
+
+      // Spousal details
+      const spouseHtml = node.spouse
+        ? `<div class="detail-row">
+             <span class="detail-label">Spouse</span>
+             <span class="detail-value">${node.spouse}</span>
+           </div>`
+        : '';
+
+      // Birth / Death years
+      const yearsHtml = `
+        <div class="detail-row">
+          <span class="detail-label">Life Status</span>
+          <span class="detail-value">${node.isLiving ? 'Living' : 'Deceased'}</span>
+        </div>
+        ${node.birthYear ? `<div class="detail-row"><span class="detail-label">Birth Year</span><span class="detail-value">${node.birthYear}</span></div>` : ''}
+        ${node.deathYear ? `<div class="detail-row"><span class="detail-label">Death Year</span><span class="detail-value">${node.deathYear}</span></div>` : ''}
+      `;
+
+      // Location details
+      const locationHtml = node.location
+        ? `<div class="detail-row">
+             <span class="detail-label">Location / Village</span>
+             <span class="detail-value">${node.location}</span>
+           </div>`
+        : '';
+
+      // Immediate relatives queries
+      const parent = findFlatNode(node.parent_id);
+      const siblings = familyData.filter(n => n.parent_id === node.parent_id && n.id !== node.id && node.parent_id !== null);
+      const children = familyData.filter(n => n.parent_id === node.id);
+
+      const parentHtml = parent
+        ? `<div class="detail-row">
+             <span class="detail-label">Parent</span>
+             <span class="detail-value relation-link" onclick="goToRelative(${parent.id})">${parent.name}</span>
+           </div>`
+        : `<div class="detail-row"><span class="detail-label">Parent</span><span class="detail-value" style="color:var(--text-muted);">Root Ancestor</span></div>`;
+
+      // Children list
+      let childrenHtml = `<div class="detail-row"><span class="detail-label">Children</span><span class="detail-value" style="color:var(--text-muted);">None recorded</span></div>`;
+      if (children.length > 0) {
+        childrenHtml = `
+          <div class="detail-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <span class="detail-label">Children (${children.length})</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;width:100%;">
+              ${children.map(c => `<span class="btn-badge relation-link" onclick="goToRelative(${c.id})" style="background:var(--bg-card);border:1px solid var(--border-color);">${c.name}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      // Siblings list
+      let siblingsHtml = '';
+      if (siblings.length > 0) {
+        siblingsHtml = `
+          <div class="detail-row" style="flex-direction:column;align-items:flex-start;gap:6px;">
+            <span class="detail-label">Siblings (${siblings.length})</span>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;width:100%;">
+              ${siblings.map(s => `<span class="btn-badge relation-link" onclick="goToRelative(${s.id})" style="background:var(--bg-card);border:1px solid var(--border-color);">${s.name}</span>`).join('')}
+            </div>
+          </div>
+        `;
+      }
+
+      content.innerHTML = `
+        <div class="inspector-hero">
+          <div class="inspector-avatar">${initials}</div>
+          <div class="inspector-name">${node.name}</div>
+          ${node.nickname ? `<div class="inspector-nickname">"${node.nickname}"</div>` : ''}
+        </div>
+        
+        <div class="inspector-details">
+          <div class="detail-row">
+            <span class="detail-label">Gender</span>
+            <span class="detail-value" style="text-transform:capitalize;">${node.gender}</span>
+          </div>
+          ${spouseHtml}
+          ${yearsHtml}
+          ${locationHtml}
+          ${parentHtml}
+          ${siblingsHtml}
+          ${childrenHtml}
+          ${notesHtml}
+        </div>
+
+        <div class="inspector-actions">
+          <button class="btn" onclick="openAddModal(selectedNode, 'child')">👶 + Child</button>
+          <button class="btn" onclick="openAddModal(selectedNode, 'sibling')">👤 + Sibling</button>
+          <button class="btn" onclick="openEditModal(selectedNode)">✏️ Edit Info</button>
+          <button class="btn btn-danger" onclick="deleteNode(selectedNode)">🗑️ Delete</button>
+        </div>
+      `;
+    }
+
+    function closeInspector() {
+      document.getElementById('inspector').classList.add('collapsed');
+      selectedNode = null;
+      
+      // Clear path highlights
+      d3.selectAll('.link').classed('highlight-ancestor', false);
+      d3.selectAll('.family-card').classed('highlight-ancestor', false);
+      document.querySelectorAll('.family-card').forEach(el => el.classList.remove('selected'));
+    }
+
+    function goToRelative(id) {
+      const node = findFlatNode(id);
+      if (node) {
+        selectNodeCard(node);
+        zoomToNode(id);
+      }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  CONTEXT MENU ACTIONS
+    // ═══════════════════════════════════════════════════════════
+    function showContextMenu(event, node) {
+      ctxNode = node;
+      const menu = document.getElementById('ctx-menu');
+      menu.style.display = 'block';
+      menu.style.left = `${event.clientX}px`;
+      menu.style.top = `${event.clientY}px`;
+      
+      // Also highlight the node under context
+      selectNodeCard(node);
+    }
+
+    function hideContextMenu() {
+      document.getElementById('ctx-menu').style.display = 'none';
+    }
+
+    function handleCtxAction(action) {
+      hideContextMenu();
+      if (!ctxNode) return;
+
+      if (action === 'add-child') openAddModal(ctxNode, 'child');
+      if (action === 'add-sibling') openAddModal(ctxNode, 'sibling');
+      if (action === 'edit') openEditModal(ctxNode);
+      if (action === 'delete') deleteNode(ctxNode);
+    }
+
+    // Hide context menu on global click
+    document.addEventListener('click', () => hideContextMenu());
+
+    // ═══════════════════════════════════════════════════════════
+    //  MODAL & MEMBERSHIP EDITING
+    // ═══════════════════════════════════════════════════════════
+    function openAddModal(relativeNode, type) {
+      modalMode = type === 'sibling' ? 'add-sibling' : 'add-child';
+      ctxNode = relativeNode;
+
+      document.getElementById('modal-title').innerHTML = `
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round"/></svg>
+        Add ${type === 'sibling' ? 'Sibling' : 'Child'}
+      `;
+      
+      // Reset form
+      document.getElementById('member-form').reset();
+      document.getElementById('modal-submit-btn').textContent = "Add Member";
+
+      // Setup Parent select options
+      setupParentDropdown();
+
+      // Prefill parent value based on insertion type
+      const parentSelect = document.getElementById('member-parent');
+      if (type === 'child' && relativeNode) {
+        parentSelect.value = relativeNode.id;
+      } else if (type === 'sibling' && relativeNode) {
+        parentSelect.value = relativeNode.parent_id || "";
+      }
+
+      openModalContainer();
+    }
+
+    function openEditModal(node) {
+      modalMode = 'edit';
+      ctxNode = node;
+
+      document.getElementById('modal-title').innerHTML = `
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5" stroke-linecap="round"/></svg>
+        Edit Member Info
+      `;
+      document.getElementById('modal-submit-btn').textContent = "Save Changes";
+
+      // Setup parent options
+      setupParentDropdown(node.id); // exclude self to prevent cyclic parenting
+
+      // Fill current fields
+      document.getElementById('member-name').value = node.name || "";
+      document.getElementById('member-nickname').value = node.nickname || "";
+      document.getElementById('member-gender').value = node.gender || "male";
+      document.getElementById('member-spouse').value = node.spouse || "";
+      document.getElementById('member-birth').value = node.birthYear || "";
+      document.getElementById('member-death').value = node.deathYear || "";
+      document.getElementById('member-location').value = node.location || "";
+      document.getElementById('member-parent').value = node.parent_id || "";
+      document.getElementById('member-notes').value = node.notes || "";
+
+      openModalContainer();
+    }
+
+    function openModalContainer() {
+      const overlay = document.getElementById('modal-overlay');
+      overlay.classList.add('open');
+      setTimeout(() => document.getElementById('member-name').focus(), 150);
+    }
+
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.remove('open');
+    }
+
+    function openHelpModal() {
+      document.getElementById('help-modal-overlay').classList.add('open');
+    }
+
+    function closeHelpModal() {
+      document.getElementById('help-modal-overlay').classList.remove('open');
+    }
+
+    function setupParentDropdown(excludeId = null) {
+      const select = document.getElementById('member-parent');
+      select.innerHTML = '<option value="">(No Parent / Root Ancestor)</option>';
+
+      // Sort family list alphabetically for easier selection
+      const sorted = [...familyData].sort((a, b) => a.name.localeCompare(b.name));
+
+      sorted.forEach(node => {
+        if (excludeId && node.id === excludeId) return; // skip self
+        select.innerHTML += `<option value="${node.id}">${node.name} ${node.nickname ? `(${node.nickname})` : ''}</option>`;
+      });
+    }
+
+    // Save Member Handler
+    function saveMember(event) {
+      event.preventDefault();
+      
+      const name = document.getElementById('member-name').value.trim();
+      const nickname = document.getElementById('member-nickname').value.trim();
+      const gender = document.getElementById('member-gender').value;
+      const spouse = document.getElementById('member-spouse').value.trim();
+      const birth = document.getElementById('member-birth').value;
+      const death = document.getElementById('member-death').value;
+      const location = document.getElementById('member-location').value.trim();
+      const parentVal = document.getElementById('member-parent').value;
+      const parent_id = parentVal ? parseInt(parentVal) : null;
+      const notes = document.getElementById('member-notes').value.trim();
+
+      if (!name) return;
+
+      // Save history for undo
+      pushHistory();
+
+      if (modalMode === 'edit') {
+        // Update existing node
+        const index = familyData.findIndex(n => n.id === ctxNode.id);
+        if (index !== -1) {
+          familyData[index] = {
+            ...familyData[index],
+            name,
+            nickname,
+            gender,
+            spouse,
+            birthYear: birth,
+            deathYear: death,
+            isLiving: death ? false : true,
+            location,
+            parent_id,
+            notes
+          };
+          showToast(`Updated info for "${name}"`);
+          
+          // Refresh selected node state
+          selectedNode = familyData[index];
+        }
+      } else {
+        // Create new node
+        const newId = familyData.length > 0 
+          ? Math.max(...familyData.map(n => n.id)) + 1 
+          : 1;
+
+        const newNode = {
+          id: newId,
+          name,
+          nickname,
+          gender,
+          spouse,
+          birthYear: birth,
+          deathYear: death,
+          isLiving: death ? false : true,
+          location,
+          parent_id,
+          notes,
+          isParsed: true
+        };
+
+        familyData.push(newNode);
+        showToast(`Added "${name}" to family tree`);
+        
+        // Auto select newly created relative
+        selectedNode = newNode;
+      }
+
+      saveToStorage();
+      closeModal();
+      renderTree();
+
+      if (selectedNode) {
+        selectNodeCard(selectedNode);
+        zoomToNode(selectedNode.id);
+      }
+    }
+
+    function deleteNode(node) {
+      // Find descendants count
+      const rootData = buildTreeHierarchy();
+      if (!rootNodeFound(rootData, node.id)) {
+        showToast("Error locating node");
+        return;
+      }
+
+      function rootNodeFound(root, id) {
+        if (!root) return null;
+        if (root.id === id) return root;
+        const children = root.children || root._children || [];
+        for (const c of children) {
+          const res = rootNodeFound(c, id);
+          if (res) return res;
+        }
+        return null;
+      }
+
+      const match = rootNodeFound(rootData, node.id);
+      const childCount = match ? getDescendantCount(match) : 0;
+      
+      const confirmMsg = childCount > 0 
+        ? `Are you sure you want to delete "${node.name}" and all of their ${childCount} descendants?`
+        : `Are you sure you want to delete "${node.name}"?`;
+
+      if (!confirm(confirmMsg)) return;
+
+      pushHistory();
+
+      // Recursive delete flat entries
+      const idsToDelete = [node.id];
+      function collectDescendants(n) {
+        const children = familyData.filter(child => child.parent_id === n.id);
+        children.forEach(c => {
+          idsToDelete.push(c.id);
+          collectDescendants(c);
+        });
+      }
+      collectDescendants(node);
+
+      // Filter out deleted IDs
+      familyData = familyData.filter(item => !idsToDelete.includes(item.id));
+      
+      showToast(`Deleted "${node.name}" and ${childCount} relatives`);
+      saveToStorage();
+      closeInspector();
+      renderTree();
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  UNDO / REDO SYSTEM
+    // ═══════════════════════════════════════════════════════════
+    function pushHistory() {
+      // Keep state in history list (deep-copy)
+      historyStack.push(JSON.stringify(familyData));
+      redoStack = []; // clear redo on new actions
+      updateHistoryButtons();
+    }
+
+    function undo() {
+      if (historyStack.length === 0) return;
+      
+      redoStack.push(JSON.stringify(familyData));
+      
+      const prevState = historyStack.pop();
+      familyData = JSON.parse(prevState);
+
+      saveToStorage();
+      renderTree();
+      closeInspector();
+      showToast("Undone last change");
+      updateHistoryButtons();
+    }
+
+    function redo() {
+      if (redoStack.length === 0) return;
+      
+      historyStack.push(JSON.stringify(familyData));
+      
+      const nextState = redoStack.pop();
+      familyData = JSON.parse(nextState);
+
+      saveToStorage();
+      renderTree();
+      closeInspector();
+      showToast("Redone change");
+      updateHistoryButtons();
+    }
+
+    function updateHistoryButtons() {
+      document.getElementById('btn-undo').disabled = historyStack.length === 0;
+      document.getElementById('btn-redo').disabled = redoStack.length === 0;
+      
+      // adjust opacity of disabled state buttons
+      document.getElementById('btn-undo').style.opacity = historyStack.length === 0 ? 0.35 : 1;
+      document.getElementById('btn-redo').style.opacity = redoStack.length === 0 ? 0.35 : 1;
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  DATA IMPORTS, EXPORTS & RESET
+    // ═══════════════════════════════════════════════════════════
+    function exportJSON() {
+      const dataStr = JSON.stringify(familyData, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MedinipurFamilyTree_Data.json';
+      a.click();
+      
+      showToast("JSON data exported!");
+    }
+
+    function importJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          if (Array.isArray(parsed)) {
+            pushHistory();
+            familyData = parsed.map(parseRawNode);
+            saveToStorage();
+            renderTree();
+            closeInspector();
+            showToast("JSON data imported successfully!");
+          } else {
+            alert("Error: Imported file is not a valid list of family nodes.");
+          }
+        } catch(err) {
+          alert("Error parsing JSON file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      // reset file input
+      event.target.value = '';
+    }
+
+    // Downloads the entire HTML page with the current edited JSON embedded in it!
+    function exportHTML() {
+      // 1. Temporarily backup active state
+      const searchVal = document.getElementById('search-input').value;
+      const selectedId = selectedNode ? selectedNode.id : null;
+      
+      // Save current zoom transform from D3
+      const currentTransform = d3.zoomTransform(svgEl.node());
+
+      // 2. Clear active state in live DOM for serialization
+      // Reset search input and search highlights
+      document.getElementById('search-input').value = '';
+      clearSearch();
+
+      // Reset selected card selection & path highlights
+      d3.selectAll('.link').classed('highlight-ancestor', false);
+      d3.selectAll('.family-card').classed('highlight-ancestor', false);
+      document.querySelectorAll('.family-card').forEach(el => el.classList.remove('selected'));
+      
+      // Close sidebars & modals (remove classes)
+      const sidebar = document.getElementById('sidebar');
+      const inspector = document.getElementById('inspector');
+      const modal = document.getElementById('modal-overlay');
+      const helpModal = document.getElementById('help-modal-overlay');
+      
+      const sidebarWasCollapsed = sidebar.classList.contains('collapsed');
+      
+      // Force default state for export: sidebar expanded, inspector collapsed, modals closed
+      sidebar.classList.remove('collapsed');
+      inspector.classList.add('collapsed');
+      modal.classList.remove('open');
+      if (helpModal) helpModal.classList.remove('open');
+      
+      // Hide context menu
+      hideContextMenu();
+      
+      // Reset zoom/pan transform attributes on group elements to prevent hardcoded offset in exported file
+      linksGroup.attr('transform', null);
+      nodesGroup.attr('transform', null);
+
+      // 3. Serialize HTML
+      const dataStr = JSON.stringify(familyData);
+      let pageText = document.documentElement.outerHTML;
+
+      // Replace legacy raw data with current edited data
+      const regex = /(\/\* DATA_START \*\/)[\s\S]*?(\/\* DATA_END \*\/)/;
+      const replacement = `/* DATA_START */\n    const RAW_NODES = ${dataStr};\n    /* DATA_END */`;
+      pageText = pageText.replace(regex, replacement);
+
+      // 4. Restore active state in live DOM immediately
+      if (searchVal) {
+        document.getElementById('search-input').value = searchVal;
+        handleSearch(searchVal);
+      }
+      if (selectedId) {
+        const nodeObj = findFlatNode(selectedId);
+        if (nodeObj) selectNodeCard(nodeObj);
+      }
+      if (sidebarWasCollapsed) {
+        sidebar.classList.add('collapsed');
+      }
+      
+      // Restore zoom transform
+      svgEl.call(zoom.transform, currentTransform);
+
+      // 5. Trigger download
+      const blob = new Blob(['<!DOCTYPE html>\n' + pageText], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MedinipurFamilyTree.html';
+      a.click();
+      
+      showToast("Standalone HTML saved & downloaded!");
+    }
+
+    function exportSVG() {
+      const svgNode = document.getElementById('tree-svg');
+      
+      // Temporarily expand all collapsed nodes before taking snap to ensure complete export
+      const beforeCollapsed = new Set(collapsedIds);
+      collapsedIds.clear();
+      renderTree();
+
+      // Set styles on SVG to look correct offline
+      const styles = document.querySelector('style').textContent;
+      const styleEl = document.createElement('style');
+      styleEl.textContent = styles;
+      svgNode.insertBefore(styleEl, svgNode.firstChild);
+
+      // Serialize DOM
+      const serializer = new XMLSerializer();
+      let source = serializer.serializeToString(svgNode);
+
+      // Remove style tag from live DOM again
+      svgNode.removeChild(styleEl);
+
+      // Restore collapse states
+      collapsedIds = beforeCollapsed;
+      renderTree();
+
+      // Add namespaces
+      if (!source.match(/^<svg[^>]+xmlns="http:\/\/www.w3.org\/2000\/svg"/)) {
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+      }
+      if (!source.match(/^<svg[^>]+xmlns:xlink="http:\/\/www.w3.org\/1999\/xlink"/)) {
+        source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+      }
+
+      const svgDoc = '<?xml version="1.0" standalone="no"?>\r\n' + source;
+      const blob = new Blob([svgDoc], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'MedinipurFamilyTree_Visual.svg';
+      a.click();
+
+      showToast("SVG Tree visual downloaded!");
+    }
+
+    function resetToDefaultData() {
+      if (!confirm("Are you sure you want to reset all edits? This will restore the tree to the default embedded family data.")) return;
+      
+      pushHistory();
+      localStorage.removeItem('medinipur_family_tree_v2');
+      collapsedIds.clear();
+      
+      familyData = RAW_NODES.map(parseRawNode);
+      
+      saveToStorage();
+      renderTree();
+      closeInspector();
+      showToast("Data reset to original family data state!");
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  THEME & UTILITY TOGGLES
+    // ═══════════════════════════════════════════════════════════
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      
+      html.setAttribute('data-theme', next);
+      
+      const sun = document.querySelector('.sun-icon');
+      const moon = document.querySelector('.moon-icon');
+      
+      if (next === 'light') {
+        sun.style.display = 'block';
+        moon.style.display = 'none';
+      } else {
+        sun.style.display = 'none';
+        moon.style.display = 'block';
+      }
+
+      showToast(`Switched to ${next} theme`);
+    }
+
+    // Toast manager
+    let toastTimer;
+    function showToast(message) {
+      const toast = document.getElementById('toast');
+      const msg = document.getElementById('toast-message');
+      
+      msg.textContent = message;
+      toast.classList.add('show');
+      
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  KEYBOARD EVENT BINDINGS
+    // ═══════════════════════════════════════════════════════════
+    document.addEventListener('keydown', (e) => {
+      // Escape closes everything
+      if (e.key === 'Escape') {
+        closeModal();
+        closeHelpModal();
+        closeInspector();
+        hideContextMenu();
+      }
+
+      // Ctrl/Cmd + Z = Undo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+        e.preventDefault();
+        undo();
+      }
+
+      // Ctrl/Cmd + Y = Redo
+      if ((e.ctrlKey || e.metaKey) && e.key === 'y') {
+        e.preventDefault();
+        redo();
+      }
+      
+      // Ctrl/Cmd + F = Focus Search
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        document.getElementById('search-input').focus();
+      }
+    });
+
+    // Close right inspector if canvas is clicked
+    document.getElementById('canvas-container').addEventListener('click', () => {
+      closeInspector();
+    });
+
+    // ═══════════════════════════════════════════════════════════
+    //  APP BOOTSTRAP
+    // ═══════════════════════════════════════════════════════════
+    window.addEventListener('resize', () => renderTree());
+
+    // Bootstrap
+    initData();
+    updateHistoryButtons();
+    renderTree();
+    
+    // Smooth auto fit on initial load
+    setTimeout(fitView, 250);
+
+  </script>
+</body>
+</html>

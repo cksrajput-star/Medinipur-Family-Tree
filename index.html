@@ -1592,17 +1592,45 @@ create policy "Allow public delete" on public.family_tree for delete using (true
           resolve();
           return;
         }
+
+        // Try unpkg first (which defaults to UMD browser bundle)
         const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';
+        script.src = 'https://unpkg.com/@supabase/supabase-js@2';
         script.onload = () => {
           if (window.supabase) {
             resolve();
           } else {
-            reject(new Error("Supabase object not found on window after script load"));
+            // Fallback to jsDelivr specific UMD bundle path
+            const script2 = document.createElement('script');
+            script2.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+            script2.onload = () => {
+              if (window.supabase) {
+                resolve();
+              } else {
+                reject(new Error("Supabase object not found on window after script load"));
+              }
+            };
+            script2.onerror = () => {
+              reject(new Error("Failed to load fallback Supabase SDK from jsDelivr"));
+            };
+            document.head.appendChild(script2);
           }
         };
         script.onerror = () => {
-          reject(new Error("Failed to load Supabase SDK from CDN"));
+          // If unpkg fails completely, fallback to jsDelivr UMD path
+          const script2 = document.createElement('script');
+          script2.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js';
+          script2.onload = () => {
+            if (window.supabase) {
+              resolve();
+            } else {
+              reject(new Error("Supabase object not found on window after script load"));
+            }
+          };
+          script2.onerror = () => {
+            reject(new Error("Failed to load Supabase SDK from both unpkg and jsDelivr"));
+          };
+          document.head.appendChild(script2);
         };
         document.head.appendChild(script);
       });

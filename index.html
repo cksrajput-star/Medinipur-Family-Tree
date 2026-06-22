@@ -1297,6 +1297,10 @@
 
   <!-- Context Menu -->
   <div id="ctx-menu">
+    <div class="ctx-item" onclick="handleCtxAction('add-parent')">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M5 15l7-7 7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Add Parent / Ancestor
+    </div>
     <div class="ctx-item" onclick="handleCtxAction('add-child')">
       <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
       Add Child
@@ -3008,9 +3012,10 @@ create policy "Allow public delete" on public.family_tree for delete using (true
           ${notesHtml}
         </div>
 
-        <div class="inspector-actions">
-          <button class="btn" onclick="openAddModal(selectedNode, 'child')">👶 + Child</button>
-          <button class="btn" onclick="openAddModal(selectedNode, 'sibling')">👤 + Sibling</button>
+        <div class="inspector-actions" style="grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn" style="grid-column: span 2; justify-content: center;" onclick="openAddModal(selectedNode, 'parent')">👴 Add Parent / Ancestor</button>
+          <button class="btn" onclick="openAddModal(selectedNode, 'sibling')">👤 Add Sibling</button>
+          <button class="btn" onclick="openAddModal(selectedNode, 'child')">👶 Add Child</button>
           <button class="btn" onclick="openEditModal(selectedNode)">✏️ Edit Info</button>
           <button class="btn btn-danger" onclick="deleteNode(selectedNode)">🗑️ Delete</button>
         </div>
@@ -3057,6 +3062,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       hideContextMenu();
       if (!ctxNode) return;
 
+      if (action === 'add-parent') openAddModal(ctxNode, 'parent');
       if (action === 'add-child') openAddModal(ctxNode, 'child');
       if (action === 'add-sibling') openAddModal(ctxNode, 'sibling');
       if (action === 'edit') openEditModal(ctxNode);
@@ -3070,12 +3076,12 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     //  MODAL & MEMBERSHIP EDITING
     // ═══════════════════════════════════════════════════════════
     function openAddModal(relativeNode, type) {
-      modalMode = type === 'sibling' ? 'add-sibling' : 'add-child';
+      modalMode = type === 'sibling' ? 'add-sibling' : (type === 'parent' ? 'add-parent' : 'add-child');
       ctxNode = relativeNode;
 
       document.getElementById('modal-title').innerHTML = `
         <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0z" stroke-linecap="round"/></svg>
-        Add ${type === 'sibling' ? 'Sibling' : 'Child'}
+        Add ${type === 'sibling' ? 'Sibling' : (type === 'parent' ? 'Parent/Ancestor' : 'Child')}
       `;
       
       // Reset form
@@ -3090,6 +3096,8 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       if (type === 'child' && relativeNode) {
         parentSelect.value = relativeNode.id;
       } else if (type === 'sibling' && relativeNode) {
+        parentSelect.value = relativeNode.parent_id || "";
+      } else if (type === 'parent' && relativeNode) {
         parentSelect.value = relativeNode.parent_id || "";
       }
 
@@ -3218,6 +3226,13 @@ create policy "Allow public delete" on public.family_tree for delete using (true
 
         familyData.push(newNode);
         targetNode = newNode;
+
+        if (modalMode === 'add-parent' && ctxNode) {
+          const index = familyData.findIndex(n => n.id === ctxNode.id);
+          if (index !== -1) {
+            familyData[index].parent_id = newId;
+          }
+        }
       }
 
       // Database sync
@@ -3246,6 +3261,33 @@ create policy "Allow public delete" on public.family_tree for delete using (true
             .from(tableName)
             .upsert(payload);
           if (error) throw error;
+
+          if (modalMode === 'add-parent' && ctxNode) {
+            const childNode = familyData.find(n => n.id === ctxNode.id);
+            if (childNode) {
+              const childPayloadFull = {
+                id: childNode.id,
+                name: childNode.name,
+                parent_id: targetNode.id,
+                gender: childNode.gender,
+                spouse: childNode.spouse || "",
+                nickname: childNode.nickname || "",
+                location: childNode.location || "",
+                notes: childNode.notes || "",
+                birthYear: childNode.birthYear || "",
+                deathYear: childNode.deathYear || "",
+                isLiving: childNode.isLiving
+              };
+              if (hasTreeIdColumnInDb) {
+                childPayloadFull.tree_id = activeTreeId;
+              }
+              const childRes = await supabase
+                .from(tableName)
+                .upsert(childPayloadFull);
+              if (childRes.error) throw childRes.error;
+            }
+          }
+
           showToast(modalMode === 'edit' ? `Updated "${name}"` : `Added "${name}"`);
         } catch (e) {
           console.error("Database save failed", e);

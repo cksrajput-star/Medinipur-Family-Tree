@@ -826,6 +826,35 @@
       color: white;
     }
 
+    /* Tree Selector Dropdown styling */
+    #sidebar-tree-select {
+      background-color: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 8px 12px;
+      font-size: 13px;
+      width: 100%;
+      outline: none;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+      background-size: 14px;
+      padding-right: 32px;
+      transition: var(--transition);
+    }
+    #sidebar-tree-select:hover {
+      border-color: var(--accent);
+      background-color: var(--bg-card-hover);
+    }
+    #sidebar-tree-select option {
+      background-color: var(--bg-app);
+      color: var(--text-main);
+    }
+
     /* ── MODALS & FORMS ── */
     .modal-overlay {
       position: fixed;
@@ -1016,20 +1045,34 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
+    
+    /* Tree switcher hover style */
+    .header-logo:hover h1 {
+      color: var(--accent);
+      background: linear-gradient(120deg, var(--accent) 60%, var(--accent-hover));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
   </style>
 </head>
 <body>
 
   <!-- Header -->
   <header>
-    <div class="header-logo">
+    <div class="header-logo" onclick="openTreeManagerModal()" style="cursor: pointer; user-select: none;" title="Manage and Switch Family Trees">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M12 6V18" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M8 10C8.5 11 9.5 12 12 12C14.5 12 15.5 11 16 10" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M8 14C8.5 13 9.5 12 12 12C14.5 12 15.5 13 16 14" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <h1>Singh Vansh · Medinipur</h1>
+      <div style="display: flex; flex-direction: column;">
+        <h1 id="active-tree-name">Singh Vansh · Medinipur</h1>
+        <span style="font-size: 9px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 2px;">
+          Switch Family Tree 
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="margin-bottom:-1px;"><path d="M19 9l-7 7-7-7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+      </div>
     </div>
 
     <div class="header-controls">
@@ -1106,6 +1149,25 @@
           <input type="text" class="search-input" id="search-input" placeholder="Search members by name..." oninput="handleSearch(this.value)">
           <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           <svg class="search-clear" id="search-clear" onclick="clearSearch()" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
+        </div>
+
+        <!-- Family Trees -->
+        <div class="panel-section">
+          <div class="panel-section-title">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Family Trees
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <select id="sidebar-tree-select" onchange="switchTree(this.value)">
+              <!-- Populated dynamically -->
+            </select>
+            <button class="btn btn-primary" onclick="openTreeManagerModal()" style="justify-content: center; width: 100%;">
+              <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+              Add / Manage Trees
+            </button>
+          </div>
         </div>
 
         <!-- Tree Operations -->
@@ -1422,6 +1484,7 @@
           <div style="margin-top: 8px; font-family: monospace; font-size: 11px; background: var(--bg-app); padding: 8px; border-radius: 4px; overflow-x: auto; color: var(--text-muted); max-height: 180px; white-space: pre; line-height: 1.4;">-- Create table
 create table public.family_tree (
     id bigint primary key,
+    tree_id text default 'default' not null, -- Scopes the node to a specific family tree
     name text not null,
     parent_id bigint references public.family_tree(id) on delete cascade,
     gender text,
@@ -1443,6 +1506,60 @@ create policy "Allow public update" on public.family_tree for update using (true
 create policy "Allow public delete" on public.family_tree for delete using (true);</div>
         </details>
       </form>
+    </div>
+  </div>
+
+  <!-- Tree Manager Modal -->
+  <div class="modal-overlay" id="tree-manager-modal-overlay" onclick="if(event.target===this) closeTreeManagerModal()">
+    <div class="modal" style="width: 600px; max-width: 95vw;">
+      <h3 class="modal-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px;">
+          <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Manage Family Trees
+      </h3>
+      
+      <!-- Trees list -->
+      <div style="margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px;">
+        <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px;">Your Family Trees</label>
+        <div id="tree-manager-list" style="display: flex; flex-direction: column; gap: 8px; max-height: 200px; overflow-y: auto; padding-right: 4px;">
+          <!-- Populated dynamically -->
+        </div>
+      </div>
+      
+      <!-- Create new tree form -->
+      <form id="create-tree-form" onsubmit="handleCreateTreeSubmit(event)" style="font-size: 13px; display: flex; flex-direction: column; gap: 12px;">
+        <label style="display: block; font-size: 11px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: -4px;">Create New Family Tree</label>
+        
+        <div class="form-row">
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="new-tree-name">Family / Chart Name *</label>
+            <input type="text" class="form-input" id="new-tree-name" placeholder="e.g. Sharma Vansh" required>
+          </div>
+          <div class="form-group" style="margin-bottom: 0;">
+            <label for="new-tree-desc">Description / Subtitle</label>
+            <input type="text" class="form-input" id="new-tree-desc" placeholder="e.g. Morsarai Ancestry">
+          </div>
+        </div>
+        
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="new-tree-root">Root Ancestor Name (Optional)</label>
+          <input type="text" class="form-input" id="new-tree-root" placeholder="e.g. Ram Prasad Sharma (Seeds the tree)">
+          <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">If provided, we will automatically seed this tree with its first member.</span>
+        </div>
+        
+        <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
+          <button type="button" class="btn" onclick="document.getElementById('import-tree-file').click()">
+            📥 Import Tree JSON
+          </button>
+          <input type="file" id="import-tree-file" style="display:none;" accept=".json" onchange="importTreeJSON(event)">
+          <button type="submit" class="btn btn-primary">Create Family Tree</button>
+        </div>
+      </form>
+      
+      <div class="modal-buttons" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
+        <button type="button" class="btn" onclick="closeTreeManagerModal()" style="margin-left: auto;">Close</button>
+      </div>
     </div>
   </div>
 
@@ -1472,7 +1589,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     // ═══════════════════════════════════════════════════════════
     //  GLOBAL STATE
     // ═══════════════════════════════════════════════════════════
-    let familyData = [];      // Cleaned and parsed flat list of nodes
+    let familyData = [];      // Cleaned and parsed flat list of nodes for active tree
     let selectedNode = null;  // Node currently selected (object)
     let ctxNode = null;       // Node target of right-click context menu (object)
     let modalMode = null;     // 'add-child' | 'add-sibling' | 'edit'
@@ -1483,6 +1600,13 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     // Undo / Redo Stacks
     let historyStack = [];
     let redoStack = [];
+
+    // Multi-tree management state
+    let activeTreeId = 'singh-vansh'; // Currently active family tree ID
+    let familyTreesIndex = [];        // Index of all trees: [{ id, name, description }]
+    let hasTreeIdColumnInDb = true;   // Flag to check if database has tree_id column
+    const DEFAULT_TREE_NAME = "Singh Vansh · Medinipur";
+    const DEFAULT_TREE_DESC = "Default template and reference tree";
 
     // Layout configuration
     let layoutMode = 'horizontal'; // 'horizontal' | 'vertical' | 'radial'
@@ -1578,8 +1702,8 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     //  DATABASE CONFIG & STATE
     // ═══════════════════════════════════════════════════════════
     const DB_CONFIG = {
-      supabaseUrl: 'https://zvuqdwmmxjgyjlsrdcoa.supabase.co',      // Hardcode Supabase URL here if desired
-      supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2dXFkd21teGpneWpsc3JkY29hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2MDEyODcsImV4cCI6MjA5NjE3NzI4N30.ZkQa1YRuvkJx4TTQSNypH4v-90umrGE6ifPyTw_b0Qs',  // Hardcode Supabase Anon Key here if desired
+      supabaseUrl: '',      // Hardcode Supabase URL here if desired
+      supabaseAnonKey: '',  // Hardcode Supabase Anon Key here if desired
       tableName: 'family_tree'
     };
     let supabase = null;
@@ -1783,29 +1907,244 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       });
     }
 
+    function initTreesIndex() {
+      const indexStored = localStorage.getItem('family_trees_index');
+      if (indexStored) {
+        try {
+          familyTreesIndex = JSON.parse(indexStored);
+        } catch (e) {
+          console.error("Failed to parse family_trees_index", e);
+        }
+      }
+
+      if (familyTreesIndex.length === 0) {
+        familyTreesIndex = [{
+          id: 'singh-vansh',
+          name: DEFAULT_TREE_NAME,
+          description: DEFAULT_TREE_DESC
+        }];
+        localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+      }
+
+      activeTreeId = localStorage.getItem('active_tree_id') || 'singh-vansh';
+      
+      if (!familyTreesIndex.some(t => t.id === activeTreeId)) {
+        activeTreeId = familyTreesIndex[0].id;
+        localStorage.setItem('active_tree_id', activeTreeId);
+      }
+    }
+
+    async function switchTree(treeId) {
+      if (treeId === activeTreeId) return;
+      activeTreeId = treeId;
+      localStorage.setItem('active_tree_id', activeTreeId);
+      
+      historyStack = [];
+      redoStack = [];
+      updateHistoryButtons();
+      
+      closeInspector();
+      clearSearch();
+      collapsedIds.clear();
+
+      showLoadingOverlay(true, "Switching family tree...");
+      try {
+        await initData();
+        updateTreeHeaderUI();
+        renderTree();
+        setTimeout(fitView, 250);
+        showToast(`Switched to family: ${getActiveTreeName()}`);
+      } catch (e) {
+        showToast("Error switching tree: " + e.message, true);
+      } finally {
+        showLoadingOverlay(false);
+      }
+    }
+
+    function getActiveTreeName() {
+      const activeTree = familyTreesIndex.find(t => t.id === activeTreeId);
+      return activeTree ? activeTree.name : DEFAULT_TREE_NAME;
+    }
+
+    function getActiveTreeDescription() {
+      const activeTree = familyTreesIndex.find(t => t.id === activeTreeId);
+      return activeTree ? (activeTree.description || '') : '';
+    }
+
+    function updateTreeHeaderUI() {
+      const el = document.getElementById('active-tree-name');
+      if (el) {
+        el.textContent = getActiveTreeName();
+      }
+      
+      const selectEl = document.getElementById('sidebar-tree-select');
+      if (selectEl) {
+        selectEl.innerHTML = '';
+        familyTreesIndex.forEach(tree => {
+          const opt = document.createElement('option');
+          opt.value = tree.id;
+          opt.textContent = tree.name;
+          opt.selected = (tree.id === activeTreeId);
+          selectEl.appendChild(opt);
+        });
+      }
+    }
+
+    async function createTree(name, description = '', rootName = '') {
+      if (!name.trim()) {
+        showToast("Family Tree Name is required", true);
+        return;
+      }
+      
+      const newTreeId = 'tree_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+      
+      const newTreeMetadata = {
+        id: newTreeId,
+        name: name.trim(),
+        description: description.trim()
+      };
+      
+      familyTreesIndex.push(newTreeMetadata);
+      localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+      
+      let initialNodes = [];
+      if (rootName.trim()) {
+        initialNodes.push({
+          id: Date.now(),
+          name: rootName.trim(),
+          parent_id: null,
+          gender: 'male',
+          spouse: '',
+          nickname: '',
+          location: '',
+          notes: 'Root ancestor / family founder',
+          birthYear: '',
+          deathYear: '',
+          isLiving: true,
+          isParsed: true
+        });
+      }
+      
+      localStorage.setItem(`family_tree_data_${newTreeId}`, JSON.stringify(initialNodes));
+      
+      if (isDbConnected && supabase && initialNodes.length > 0 && hasTreeIdColumnInDb) {
+        try {
+          const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
+          await supabase.from(tableName).upsert({
+            id: initialNodes[0].id,
+            tree_id: newTreeId,
+            name: initialNodes[0].name,
+            parent_id: null,
+            gender: initialNodes[0].gender,
+            spouse: '',
+            nickname: '',
+            location: '',
+            notes: initialNodes[0].notes,
+            birthYear: '',
+            deathYear: '',
+            isLiving: true
+          });
+        } catch (e) {
+          console.error("Failed to sync new tree root node to database", e);
+        }
+      }
+      
+      await switchTree(newTreeId);
+      closeTreeManagerModal();
+      showToast(`Created new family tree: "${name.trim()}"`);
+    }
+
+    function renameTree(treeId, newName, newDescription = '') {
+      if (!newName.trim()) {
+        showToast("Tree Name cannot be empty", true);
+        return;
+      }
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      if (tree) {
+        tree.name = newName.trim();
+        tree.description = newDescription.trim();
+        localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+        updateTreeHeaderUI();
+        renderTreeManagerList();
+        showToast("Family Tree updated successfully");
+      }
+    }
+
+    async function deleteTree(treeId) {
+      if (familyTreesIndex.length <= 1) {
+        showToast("Cannot delete the only remaining family tree.", true);
+        return;
+      }
+      
+      const treeToDelete = familyTreesIndex.find(t => t.id === treeId);
+      if (!treeToDelete) return;
+      
+      if (!confirm(`Are you sure you want to permanently delete the family tree for "${treeToDelete.name}"?\nThis will erase all its members and cannot be undone.`)) {
+        return;
+      }
+      
+      localStorage.removeItem(`family_tree_data_${treeId}`);
+      if (treeId === 'singh-vansh') {
+        localStorage.removeItem('medinipur_family_tree_v2');
+      }
+      
+      if (isDbConnected && supabase && hasTreeIdColumnInDb) {
+        showLoadingOverlay(true, "Deleting from database...");
+        try {
+          const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
+          const { error } = await supabase
+            .from(tableName)
+            .delete()
+            .eq('tree_id', treeId);
+          if (error) throw error;
+        } catch (e) {
+          console.error("Failed to delete tree from database", e);
+          showToast(`Deleted locally, but DB deletion failed: ${e.message}`, true);
+        } finally {
+          showLoadingOverlay(false);
+        }
+      }
+      
+      familyTreesIndex = familyTreesIndex.filter(t => t.id !== treeId);
+      localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+      
+      if (activeTreeId === treeId) {
+        await switchTree(familyTreesIndex[0].id);
+      } else {
+        renderTreeManagerList();
+      }
+      showToast(`Deleted family tree: "${treeToDelete.name}"`);
+    }
+
     async function migrateLocalToDb() {
       if (!isDbConnected || !supabase) {
         showToast("Database not connected!", true);
         return;
       }
-      if (!confirm("Push all local members to the database? This will merge/overwrite records by ID.")) return;
+      if (!confirm(`Push all local members of "${getActiveTreeName()}" to the database? This will merge/overwrite records by ID.`)) return;
 
       showLoadingOverlay(true, "Pushing data to database...");
       try {
         const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
-        const payload = familyData.map(node => ({
-          id: node.id,
-          name: node.name,
-          parent_id: node.parent_id,
-          gender: node.gender,
-          spouse: node.spouse || "",
-          nickname: node.nickname || "",
-          location: node.location || "",
-          notes: node.notes || "",
-          birthYear: node.birthYear || "",
-          deathYear: node.deathYear || "",
-          isLiving: node.deathYear ? false : true
-        }));
+        const payload = familyData.map(node => {
+          const item = {
+            id: node.id,
+            name: node.name,
+            parent_id: node.parent_id,
+            gender: node.gender,
+            spouse: node.spouse || "",
+            nickname: node.nickname || "",
+            location: node.location || "",
+            notes: node.notes || "",
+            birthYear: node.birthYear || "",
+            deathYear: node.deathYear || "",
+            isLiving: node.deathYear ? false : true
+          };
+          if (hasTreeIdColumnInDb) {
+            item.tree_id = activeTreeId;
+          }
+          return item;
+        });
 
         const { error } = await supabase
           .from(tableName)
@@ -1826,15 +2165,17 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         showToast("Database not connected!", true);
         return;
       }
-      if (!confirm("Overwrite your local storage cache with database data?")) return;
+      if (!confirm(`Overwrite your local storage cache for "${getActiveTreeName()}" with database data?`)) return;
 
       showLoadingOverlay(true, "Pulling database data...");
       try {
         const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
-        const { data, error } = await supabase
-          .from(tableName)
-          .select('*')
-          .order('id', { ascending: true });
+        let query = supabase.from(tableName).select('*');
+        if (hasTreeIdColumnInDb) {
+          query = query.eq('tree_id', activeTreeId);
+        }
+        
+        const { data, error } = await query.order('id', { ascending: true });
 
         if (error) throw error;
 
@@ -1847,7 +2188,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
           renderTree();
           showToast(`Successfully pulled ${familyData.length} members from database!`);
         } else {
-          showToast("Database is empty. No data to pull.", true);
+          showToast("Database has no records for this tree.", true);
         }
       } catch (e) {
         console.error("Pull failed", e);
@@ -1859,17 +2200,35 @@ create policy "Allow public delete" on public.family_tree for delete using (true
 
     // Load initial data
     async function initData() {
+      initTreesIndex();
+      updateTreeHeaderUI();
+
       // 1. Try loading from database if connected
       if (isDbConnected && supabase) {
         showLoadingOverlay(true, "Fetching data from database...");
         try {
           const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
-          const { data, error } = await supabase
+          let { data, error } = await supabase
             .from(tableName)
             .select('*')
+            .eq('tree_id', activeTreeId)
             .order('id', { ascending: true });
 
-          if (error) throw error;
+          if (error && error.code === '42703') {
+            console.warn("Column 'tree_id' not found in database table. Querying without filter.");
+            hasTreeIdColumnInDb = false;
+            const fallbackResult = await supabase
+              .from(tableName)
+              .select('*')
+              .order('id', { ascending: true });
+            
+            if (fallbackResult.error) throw fallbackResult.error;
+            data = fallbackResult.data;
+          } else if (error) {
+            throw error;
+          } else {
+            hasTreeIdColumnInDb = true;
+          }
 
           if (data && data.length > 0) {
             familyData = data.map(node => ({
@@ -1880,7 +2239,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
             showLoadingOverlay(false);
             return;
           } else {
-            console.log("Database table is empty. Fallback to cache.");
+            console.log("Database table is empty for this tree. Fallback to cache.");
           }
         } catch (e) {
           console.error("DB load failed. Reverting to local storage cache.", e);
@@ -1890,24 +2249,47 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         }
       }
 
-      // 2. Fallback to localStorage
-      const stored = localStorage.getItem('medinipur_family_tree_v2');
-      if (stored) {
+      // 2. Fallback to localStorage for active tree data
+      const storedActive = localStorage.getItem(`family_tree_data_${activeTreeId}`);
+      if (storedActive) {
         try {
-          familyData = JSON.parse(stored);
+          familyData = JSON.parse(storedActive);
           return;
         } catch(e) {
-          console.error("Failed to parse storage, loading default data", e);
+          console.error(`Failed to parse active tree data for ${activeTreeId}`, e);
         }
       }
 
-      // 3. Fallback to default raw data
-      familyData = RAW_NODES.map(parseRawNode);
-      saveToStorage();
+      // Legacy migration check: if active tree is 'singh-vansh' and no active data exists, check medinipur_family_tree_v2
+      if (activeTreeId === 'singh-vansh') {
+        const storedLegacy = localStorage.getItem('medinipur_family_tree_v2');
+        if (storedLegacy) {
+          try {
+            familyData = JSON.parse(storedLegacy);
+            saveToStorage(); // Migrate to family_tree_data_singh-vansh
+            return;
+          } catch(e) {
+            console.error("Failed to parse legacy storage", e);
+          }
+        }
+      }
+
+      // 3. Fallback to default raw data if we are loading 'singh-vansh'
+      if (activeTreeId === 'singh-vansh') {
+        familyData = RAW_NODES.map(parseRawNode);
+        saveToStorage();
+      } else {
+        // Empty tree initially for other families
+        familyData = [];
+        saveToStorage();
+      }
     }
 
     function saveToStorage() {
-      localStorage.setItem('medinipur_family_tree_v2', JSON.stringify(familyData));
+      localStorage.setItem(`family_tree_data_${activeTreeId}`, JSON.stringify(familyData));
+      if (activeTreeId === 'singh-vansh') {
+        localStorage.setItem('medinipur_family_tree_v2', JSON.stringify(familyData));
+      }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -2813,10 +3195,11 @@ create policy "Allow public delete" on public.family_tree for delete using (true
           targetNode = familyData[index];
         }
       } else {
-        // Create new node
-        const newId = familyData.length > 0 
-          ? Math.max(...familyData.map(n => n.id)) + 1 
-          : 1;
+        // Create new node using Unix timestamp to prevent conflicts across multiple trees in DB
+        let newId = Date.now();
+        while (familyData.some(n => n.id === newId)) {
+          newId++;
+        }
 
         const newNode = {
           id: newId,
@@ -2842,21 +3225,26 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         showLoadingOverlay(true, modalMode === 'edit' ? "Updating database..." : "Adding to database...");
         try {
           const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
+          const payload = {
+            id: targetNode.id,
+            name: targetNode.name,
+            parent_id: targetNode.parent_id,
+            gender: targetNode.gender,
+            spouse: targetNode.spouse,
+            nickname: targetNode.nickname,
+            location: targetNode.location,
+            notes: targetNode.notes,
+            birthYear: targetNode.birthYear,
+            deathYear: targetNode.deathYear,
+            isLiving: targetNode.isLiving
+          };
+          if (hasTreeIdColumnInDb) {
+            payload.tree_id = activeTreeId;
+          }
+
           const { error } = await supabase
             .from(tableName)
-            .upsert({
-              id: targetNode.id,
-              name: targetNode.name,
-              parent_id: targetNode.parent_id,
-              gender: targetNode.gender,
-              spouse: targetNode.spouse,
-              nickname: targetNode.nickname,
-              location: targetNode.location,
-              notes: targetNode.notes,
-              birthYear: targetNode.birthYear,
-              deathYear: targetNode.deathYear,
-              isLiving: targetNode.isLiving
-            });
+            .upsert(payload);
           if (error) throw error;
           showToast(modalMode === 'edit' ? `Updated "${name}"` : `Added "${name}"`);
         } catch (e) {
@@ -2929,10 +3317,16 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         showLoadingOverlay(true, "Deleting from database...");
         try {
           const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
-          const { error } = await supabase
+          let query = supabase
             .from(tableName)
             .delete()
             .in('id', idsToDelete);
+          
+          if (hasTreeIdColumnInDb) {
+            query = query.eq('tree_id', activeTreeId);
+          }
+          
+          const { error } = await query;
           
           if (error) throw error;
           showToast(`Deleted "${node.name}" and ${childCount} relatives`);
@@ -3092,6 +3486,13 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       const replacement = `/* DATA_START */\n    const RAW_NODES = ${dataStr};\n    /* DATA_END */`;
       pageText = pageText.replace(regex, replacement);
 
+      // Replace DEFAULT_TREE_NAME and DEFAULT_TREE_DESC
+      const nameRegex = /const DEFAULT_TREE_NAME = ".*?";/;
+      pageText = pageText.replace(nameRegex, `const DEFAULT_TREE_NAME = ${JSON.stringify(getActiveTreeName())};`);
+      
+      const descRegex = /const DEFAULT_TREE_DESC = ".*?";/;
+      pageText = pageText.replace(descRegex, `const DEFAULT_TREE_DESC = ${JSON.stringify(getActiveTreeDescription())};`);
+
       // 4. Restore active state in live DOM immediately
       if (searchVal) {
         document.getElementById('search-input').value = searchVal;
@@ -3114,7 +3515,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'MedinipurFamilyTree.html';
+      a.download = `${getActiveTreeName().replace(/[^a-zA-Z0-9]/g, '_')}_FamilyTree.html`;
       a.click();
       
       showToast("Standalone HTML saved & downloaded!");
@@ -3137,7 +3538,6 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       // Serialize DOM
       const serializer = new XMLSerializer();
       let source = serializer.serializeToString(svgNode);
-
       // Remove style tag from live DOM again
       svgNode.removeChild(styleEl);
 
@@ -3147,10 +3547,10 @@ create policy "Allow public delete" on public.family_tree for delete using (true
 
       // Add namespaces
       if (!source.match(/^<svg[^>]+xmlns="http:\/\/www.w3.org\/2000\/svg"/)) {
-        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000\/svg"');
       }
       if (!source.match(/^<svg[^>]+xmlns:xlink="http:\/\/www.w3.org\/1999\/xlink"/)) {
-        source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+        source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999\/xlink"');
       }
 
       const svgDoc = '<?xml version="1.0" standalone="no"?>\r\n' + source;
@@ -3260,6 +3660,210 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     document.getElementById('canvas-container').addEventListener('click', () => {
       closeInspector();
     });
+
+    // ═══════════════════════════════════════════════════════════
+    //  MULTI-TREE UI & INTERACTION HELPERS
+    // ═══════════════════════════════════════════════════════════
+    function openTreeManagerModal() {
+      renderTreeManagerList();
+      document.getElementById('tree-manager-modal-overlay').classList.add('open');
+    }
+
+    function closeTreeManagerModal() {
+      document.getElementById('tree-manager-modal-overlay').classList.remove('open');
+      document.getElementById('create-tree-form').reset();
+    }
+
+    function renderTreeManagerList() {
+      const container = document.getElementById('tree-manager-list');
+      if (!container) return;
+      container.innerHTML = '';
+      
+      familyTreesIndex.forEach(tree => {
+        const isActive = tree.id === activeTreeId;
+        
+        let nodeCount = 0;
+        if (isActive) {
+          nodeCount = familyData.length;
+        } else {
+          const stored = localStorage.getItem(`family_tree_data_${tree.id}`);
+          if (stored) {
+            try {
+              nodeCount = JSON.parse(stored).length;
+            } catch(e) {}
+          } else if (tree.id === 'singh-vansh') {
+            nodeCount = RAW_NODES.length;
+          }
+        }
+        
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.alignItems = 'center';
+        row.style.justifyContent = 'space-between';
+        row.style.background = isActive ? 'rgba(var(--accent-rgb), 0.08)' : 'rgba(0, 0, 0, 0.15)';
+        row.style.border = isActive ? '1px solid var(--accent)' : '1px solid var(--border-color)';
+        row.style.borderRadius = '10px';
+        row.style.padding = '10px 14px';
+        row.style.marginBottom = '6px';
+        
+        row.innerHTML = `
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <strong style="font-size: 13px; color: var(--text-main); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${tree.name}</strong>
+              ${isActive ? '<span class="btn-badge" style="background: var(--accent); color: var(--text-inverse); font-size: 8px; padding: 1px 4px;">Active</span>' : ''}
+              <span class="btn-badge" style="font-size:8px; padding: 1px 4px;">${nodeCount} members</span>
+            </div>
+            ${tree.description ? `<span style="font-size: 10px; color: var(--text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${tree.description}</span>` : ''}
+          </div>
+          <div style="display: flex; gap: 6px; align-items: center;">
+            ${!isActive ? `<button class="btn" style="padding: 4px 8px; font-size:10px;" onclick="switchTree('${tree.id}')">Switch</button>` : ''}
+            <button class="btn btn-icon" style="width:26px; height:26px; font-size:11px;" title="Rename Tree" onclick="promptRenameTree('${tree.id}')">
+              ✏️
+            </button>
+            <button class="btn btn-icon" style="width:26px; height:26px; font-size:11px;" title="Export Tree JSON" onclick="exportTreeJSON('${tree.id}')">
+              💾
+            </button>
+            <button class="btn btn-danger btn-icon" style="width:26px; height:26px; font-size:11px;" title="Delete Tree" onclick="deleteTree('${tree.id}')">
+              🗑️
+            </button>
+          </div>
+        `;
+        container.appendChild(row);
+      });
+    }
+
+    function promptRenameTree(treeId) {
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      if (!tree) return;
+      const newName = prompt("Enter new name for the family tree:", tree.name);
+      if (newName === null) return;
+      if (!newName.trim()) {
+        showToast("Tree name cannot be empty", true);
+        return;
+      }
+      const newDesc = prompt("Enter new description (optional):", tree.description || "");
+      if (newDesc === null) return;
+      renameTree(treeId, newName, newDesc);
+    }
+
+    function handleCreateTreeSubmit(event) {
+      event.preventDefault();
+      const name = document.getElementById('new-tree-name').value;
+      const desc = document.getElementById('new-tree-desc').value;
+      const root = document.getElementById('new-tree-root').value;
+      createTree(name, desc, root);
+    }
+
+    function exportTreeJSON(treeId) {
+      let treeData = [];
+      if (treeId === activeTreeId) {
+        treeData = familyData;
+      } else {
+        const stored = localStorage.getItem(`family_tree_data_${treeId}`);
+        if (stored) {
+          try {
+            treeData = JSON.parse(stored);
+          } catch(e) {}
+        } else if (treeId === 'singh-vansh') {
+          treeData = RAW_NODES.map(parseRawNode);
+        }
+      }
+      
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      const name = tree ? tree.name : 'FamilyTree';
+      
+      const exportObject = {
+        metadata: {
+          id: treeId,
+          name: name,
+          description: tree ? tree.description : ''
+        },
+        nodes: treeData
+      };
+      
+      const dataStr = JSON.stringify(exportObject, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${name.replace(/\s+/g, '_')}_Backup.json`;
+      a.click();
+      
+      showToast(`Exported "${name}" tree data!`);
+    }
+
+    function importTreeJSON(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          let metadata = {};
+          let nodes = [];
+          
+          if (parsed && parsed.metadata && Array.isArray(parsed.nodes)) {
+            metadata = parsed.metadata;
+            nodes = parsed.nodes;
+          } else if (Array.isArray(parsed)) {
+            metadata = {
+              name: file.name.replace('.json', '').replace(/_/g, ' '),
+              description: 'Imported legacy JSON tree'
+            };
+            nodes = parsed;
+          } else {
+            alert("Error: Imported file format is invalid.");
+            return;
+          }
+          
+          const newTreeId = 'tree_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
+          const newTreeMetadata = {
+            id: newTreeId,
+            name: metadata.name || 'Imported Tree',
+            description: metadata.description || 'Imported from JSON'
+          };
+          
+          familyTreesIndex.push(newTreeMetadata);
+          localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+          
+          const parsedNodes = nodes.map(parseRawNode);
+          localStorage.setItem(`family_tree_data_${newTreeId}`, JSON.stringify(parsedNodes));
+          
+          if (isDbConnected && supabase && hasTreeIdColumnInDb && parsedNodes.length > 0) {
+            const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
+            const dbPayload = parsedNodes.map(n => ({
+              id: n.id,
+              tree_id: newTreeId,
+              name: n.name,
+              parent_id: n.parent_id,
+              gender: n.gender,
+              spouse: n.spouse || '',
+              nickname: n.nickname || '',
+              location: n.location || '',
+              notes: n.notes || '',
+              birthYear: n.birthYear || '',
+              deathYear: n.deathYear || '',
+              isLiving: n.isLiving
+            }));
+            
+            supabase.from(tableName).upsert(dbPayload).then(({ error }) => {
+              if (error) console.error("Failed to sync imported nodes to DB:", error);
+            });
+          }
+          
+          switchTree(newTreeId).then(() => {
+            closeTreeManagerModal();
+            showToast(`Imported new family tree: "${newTreeMetadata.name}"`);
+          });
+        } catch(err) {
+          alert("Error parsing JSON file: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+      event.target.value = '';
+    }
 
     // ═══════════════════════════════════════════════════════════
     //  APP BOOTSTRAP

@@ -1053,6 +1053,177 @@
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
     }
+
+    /* ── PASSWORD GATE MODAL ── */
+    .password-gate {
+      position: fixed;
+      inset: 0;
+      background: rgba(6, 9, 19, 0.92);
+      backdrop-filter: blur(20px);
+      z-index: 2000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      opacity: 0;
+      transition: opacity 0.3s ease-out;
+    }
+    .password-gate.open {
+      display: flex;
+      opacity: 1;
+    }
+    .password-gate-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 40px 36px 32px;
+      width: 380px;
+      max-width: 90vw;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 80px rgba(var(--accent-rgb), 0.08);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      animation: gateSlideIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    @keyframes gateSlideIn {
+      from { transform: translateY(30px) scale(0.92); opacity: 0; }
+      to { transform: translateY(0) scale(1); opacity: 1; }
+    }
+    .password-gate-lock {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(var(--accent-rgb), 0.15), rgba(var(--accent-rgb), 0.05));
+      border: 2px solid rgba(var(--accent-rgb), 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      animation: lockPulse 2s ease-in-out infinite;
+    }
+    @keyframes lockPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), 0.15); }
+      50% { box-shadow: 0 0 20px 4px rgba(var(--accent-rgb), 0.08); }
+    }
+    .password-gate-lock svg {
+      width: 28px;
+      height: 28px;
+      color: var(--accent);
+    }
+    .password-gate-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+      text-align: center;
+    }
+    .password-gate-subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      margin-top: -12px;
+    }
+    .password-input-wrapper {
+      position: relative;
+      width: 100%;
+    }
+    .password-input-wrapper input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 12px 44px 12px 14px;
+      border-radius: 10px;
+      font-size: 14px;
+      outline: none;
+      transition: var(--transition);
+      letter-spacing: 1px;
+    }
+    .password-input-wrapper input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.12);
+    }
+    .password-input-wrapper input.error {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+    }
+    .password-toggle-btn {
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      transition: color 0.2s;
+    }
+    .password-toggle-btn:hover {
+      color: var(--text-main);
+    }
+    .password-gate-error {
+      font-size: 12px;
+      color: #ef4444;
+      text-align: center;
+      min-height: 18px;
+      margin-top: -8px;
+    }
+    .password-gate-actions {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+    }
+    .password-gate-actions .btn {
+      flex: 1;
+      justify-content: center;
+      padding: 10px 16px;
+    }
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-8px); }
+      40%, 80% { transform: translateX(8px); }
+    }
+    .shake {
+      animation: shake 0.4s ease-in-out;
+    }
+
+    /* Lock badge for tree manager list */
+    .tree-lock-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      background: rgba(251, 191, 36, 0.12);
+      color: #fbbf24;
+      font-size: 8px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+    .tree-lock-badge svg {
+      width: 8px;
+      height: 8px;
+    }
+
+    /* Password set modal (reuses modal styles) */
+    .password-set-form {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+    }
+    .password-set-form label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
   </style>
 </head>
 <body>
@@ -1552,6 +1723,17 @@ create policy "Allow public delete" on public.family_tree for delete using (true
           <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">If provided, we will automatically seed this tree with its first member.</span>
         </div>
         
+        <div class="form-group" style="margin-bottom: 0;">
+          <label for="new-tree-password">Password Protection (Optional)</label>
+          <div class="password-input-wrapper">
+            <input type="password" class="form-input" id="new-tree-password" placeholder="Set a password to share with family" style="padding-right: 40px;">
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('new-tree-password', this)" tabindex="-1">
+              <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>
+          <span style="font-size: 10px; color: var(--text-muted); margin-top: 4px; display: block;">🔒 Anyone opening this tree will need this password. Share it with trusted family members.</span>
+        </div>
+        
         <div style="display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px;">
           <button type="button" class="btn" onclick="document.getElementById('import-tree-file').click()">
             📥 Import Tree JSON
@@ -1563,6 +1745,64 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       
       <div class="modal-buttons" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
         <button type="button" class="btn" onclick="closeTreeManagerModal()" style="margin-left: auto;">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Gate Modal (full-screen unlock overlay) -->
+  <div class="password-gate" id="password-gate">
+    <div class="password-gate-card">
+      <div class="password-gate-lock">
+        <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-linecap="round"/>
+          <path d="M7 11V7a5 5 0 0110 0v4" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="password-gate-title" id="password-gate-tree-name">Family Tree</div>
+      <div class="password-gate-subtitle">This tree is password-protected. Enter the password to view.</div>
+      <div class="password-input-wrapper">
+        <input type="password" id="password-gate-input" placeholder="Enter password" autocomplete="off" onkeydown="if(event.key==='Enter') submitPasswordGate()">
+        <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password-gate-input', this)" tabindex="-1">
+          <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round"/><circle cx="12" cy="12" r="3"/></svg>
+        </button>
+      </div>
+      <div class="password-gate-error" id="password-gate-error"></div>
+      <div class="password-gate-actions">
+        <button class="btn" onclick="cancelPasswordGate()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitPasswordGate()">🔓 Unlock</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Password Set/Change Modal -->
+  <div class="modal-overlay" id="password-set-modal-overlay" onclick="if(event.target===this) closePasswordSetModal()">
+    <div class="modal" style="width: 400px; max-width: 90vw;">
+      <h3 class="modal-title">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" style="margin-right:4px;">
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" stroke-linecap="round"/>
+          <path d="M7 11V7a5 5 0 0110 0v4" stroke-linecap="round"/>
+        </svg>
+        <span id="password-set-modal-title">Set Password</span>
+      </h3>
+      <div class="password-set-form">
+        <label>Tree: <strong id="password-set-tree-name"></strong></label>
+        <div class="password-input-wrapper">
+          <input type="password" id="password-set-input" class="form-input" placeholder="Enter new password" autocomplete="off" onkeydown="if(event.key==='Enter') submitPasswordSet()" style="padding-right: 40px;">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password-set-input', this)" tabindex="-1">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div class="password-input-wrapper">
+          <input type="password" id="password-set-confirm" class="form-input" placeholder="Confirm password" autocomplete="off" onkeydown="if(event.key==='Enter') submitPasswordSet()" style="padding-right: 40px;">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('password-set-confirm', this)" tabindex="-1">
+            <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round"/><circle cx="12" cy="12" r="3"/></svg>
+          </button>
+        </div>
+        <div id="password-set-error" style="font-size: 12px; color: #ef4444; min-height: 18px;"></div>
+      </div>
+      <div class="modal-buttons" style="margin-top: 12px;">
+        <button class="btn" onclick="closePasswordSetModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitPasswordSet()">💾 Save Password</button>
       </div>
     </div>
   </div>
@@ -1607,10 +1847,16 @@ create policy "Allow public delete" on public.family_tree for delete using (true
 
     // Multi-tree management state
     let activeTreeId = 'singh-vansh'; // Currently active family tree ID
-    let familyTreesIndex = [];        // Index of all trees: [{ id, name, description }]
+    let familyTreesIndex = [];        // Index of all trees: [{ id, name, description, passwordHash? }]
     let hasTreeIdColumnInDb = true;   // Flag to check if database has tree_id column
     const DEFAULT_TREE_NAME = "Singh Vansh · Medinipur";
     const DEFAULT_TREE_DESC = "Default template and reference tree";
+
+    // Password protection state
+    let unlockedTrees = new Set();          // Session-only: trees unlocked this session
+    let pendingPasswordTreeId = null;       // Tree ID awaiting password unlock
+    let pendingPasswordCallback = null;     // Callback after successful unlock
+    let passwordSetTargetTreeId = null;     // Tree ID being password-set/changed
 
     // Layout configuration
     let layoutMode = 'horizontal'; // 'horizontal' | 'vertical' | 'radial'
@@ -1632,6 +1878,186 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       ['#a21caf', '#d946ef'], // Gen 9
       ['#451a03', '#78350f']  // Gen 10
     ];
+
+    // ═══════════════════════════════════════════════════════════
+    //  PASSWORD PROTECTION FUNCTIONS
+    // ═══════════════════════════════════════════════════════════
+    async function hashPassword(password) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(password);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    async function setTreePassword(treeId, password) {
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      if (!tree) return;
+      if (password && password.trim()) {
+        tree.passwordHash = await hashPassword(password.trim());
+        unlockedTrees.add(treeId); // Auto-unlock for the person who sets it
+      } else {
+        delete tree.passwordHash;
+      }
+      localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+    }
+
+    function removeTreePassword(treeId) {
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      if (!tree) return;
+      delete tree.passwordHash;
+      unlockedTrees.delete(treeId);
+      localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+    }
+
+    async function verifyTreePassword(treeId, password) {
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      if (!tree || !tree.passwordHash) return true; // No password = always pass
+      const inputHash = await hashPassword(password.trim());
+      return inputHash === tree.passwordHash;
+    }
+
+    function isTreeProtected(treeId) {
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      return tree && tree.passwordHash;
+    }
+
+    function isTreeUnlocked(treeId) {
+      if (!isTreeProtected(treeId)) return true;
+      return unlockedTrees.has(treeId);
+    }
+
+    // Show the password gate overlay for a protected tree
+    function showPasswordGate(treeId, onSuccess) {
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      if (!tree) return;
+
+      pendingPasswordTreeId = treeId;
+      pendingPasswordCallback = onSuccess;
+
+      document.getElementById('password-gate-tree-name').textContent = tree.name;
+      document.getElementById('password-gate-input').value = '';
+      document.getElementById('password-gate-error').textContent = '';
+      document.getElementById('password-gate-input').classList.remove('error');
+
+      const gate = document.getElementById('password-gate');
+      gate.classList.add('open');
+
+      // Focus input after animation
+      setTimeout(() => document.getElementById('password-gate-input').focus(), 100);
+    }
+
+    async function submitPasswordGate() {
+      const input = document.getElementById('password-gate-input');
+      const errorEl = document.getElementById('password-gate-error');
+      const password = input.value;
+
+      if (!password.trim()) {
+        errorEl.textContent = 'Please enter the password.';
+        input.classList.add('error');
+        return;
+      }
+
+      const isValid = await verifyTreePassword(pendingPasswordTreeId, password);
+      if (isValid) {
+        unlockedTrees.add(pendingPasswordTreeId);
+        document.getElementById('password-gate').classList.remove('open');
+        errorEl.textContent = '';
+        input.classList.remove('error');
+        showToast('🔓 Tree unlocked successfully!');
+
+        if (pendingPasswordCallback) {
+          pendingPasswordCallback();
+          pendingPasswordCallback = null;
+        }
+        pendingPasswordTreeId = null;
+      } else {
+        errorEl.textContent = 'Incorrect password. Please try again.';
+        input.classList.add('error');
+        input.value = '';
+
+        // Shake animation
+        const card = document.querySelector('.password-gate-card');
+        card.classList.add('shake');
+        setTimeout(() => card.classList.remove('shake'), 400);
+        input.focus();
+      }
+    }
+
+    function cancelPasswordGate() {
+      document.getElementById('password-gate').classList.remove('open');
+      document.getElementById('password-gate-input').value = '';
+      document.getElementById('password-gate-error').textContent = '';
+      pendingPasswordTreeId = null;
+      pendingPasswordCallback = null;
+    }
+
+    // Password set/change modal
+    function openPasswordSetModal(treeId) {
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      if (!tree) return;
+      passwordSetTargetTreeId = treeId;
+
+      const isChange = !!tree.passwordHash;
+      document.getElementById('password-set-modal-title').textContent = isChange ? 'Change Password' : 'Set Password';
+      document.getElementById('password-set-tree-name').textContent = tree.name;
+      document.getElementById('password-set-input').value = '';
+      document.getElementById('password-set-confirm').value = '';
+      document.getElementById('password-set-error').textContent = '';
+
+      document.getElementById('password-set-modal-overlay').classList.add('open');
+      setTimeout(() => document.getElementById('password-set-input').focus(), 100);
+    }
+
+    function closePasswordSetModal() {
+      document.getElementById('password-set-modal-overlay').classList.remove('open');
+      passwordSetTargetTreeId = null;
+    }
+
+    async function submitPasswordSet() {
+      const password = document.getElementById('password-set-input').value;
+      const confirm = document.getElementById('password-set-confirm').value;
+      const errorEl = document.getElementById('password-set-error');
+
+      if (!password.trim()) {
+        errorEl.textContent = 'Password cannot be empty.';
+        return;
+      }
+      if (password.length < 3) {
+        errorEl.textContent = 'Password must be at least 3 characters.';
+        return;
+      }
+      if (password !== confirm) {
+        errorEl.textContent = 'Passwords do not match.';
+        return;
+      }
+
+      await setTreePassword(passwordSetTargetTreeId, password);
+      closePasswordSetModal();
+      renderTreeManagerList();
+      showToast('🔒 Password set successfully! Share it with your family.');
+    }
+
+    function promptRemovePassword(treeId) {
+      const tree = familyTreesIndex.find(t => t.id === treeId);
+      if (!tree || !tree.passwordHash) return;
+      if (!confirm(`Remove password protection from "${tree.name}"?\nAnyone will be able to view this tree without a password.`)) return;
+      removeTreePassword(treeId);
+      renderTreeManagerList();
+      showToast('🔓 Password removed. Tree is now open to all.');
+    }
+
+    // Toggle password visibility helper
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      // Swap eye icon
+      const eyeOpen = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" stroke-linecap="round"/><circle cx="12" cy="12" r="3"/></svg>`;
+      const eyeClosed = `<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" stroke-linecap="round"/><line x1="1" y1="1" x2="23" y2="23" stroke-linecap="round"/></svg>`;
+      btn.innerHTML = isPassword ? eyeClosed : eyeOpen;
+    }
 
     // ═══════════════════════════════════════════════════════════
     //  METADATA SMART PARSER
@@ -1940,6 +2366,19 @@ create policy "Allow public delete" on public.family_tree for delete using (true
 
     async function switchTree(treeId) {
       if (treeId === activeTreeId) return;
+      
+      // Check password protection before switching
+      if (isTreeProtected(treeId) && !isTreeUnlocked(treeId)) {
+        showPasswordGate(treeId, () => {
+          performTreeSwitch(treeId);
+        });
+        return;
+      }
+      
+      await performTreeSwitch(treeId);
+    }
+
+    async function performTreeSwitch(treeId) {
       activeTreeId = treeId;
       localStorage.setItem('active_tree_id', activeTreeId);
       
@@ -1994,7 +2433,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       }
     }
 
-    async function createTree(name, description = '', rootName = '') {
+    async function createTree(name, description = '', rootName = '', password = '') {
       if (!name.trim()) {
         showToast("Family Tree Name is required", true);
         return;
@@ -2007,6 +2446,12 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         name: name.trim(),
         description: description.trim()
       };
+      
+      // Set password if provided
+      if (password && password.trim()) {
+        newTreeMetadata.passwordHash = await hashPassword(password.trim());
+        unlockedTrees.add(newTreeId); // Auto-unlock for creator
+      }
       
       familyTreesIndex.push(newTreeMetadata);
       localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
@@ -2053,7 +2498,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         }
       }
       
-      await switchTree(newTreeId);
+      await performTreeSwitch(newTreeId);
       closeTreeManagerModal();
       showToast(`Created new family tree: "${name.trim()}"`);
     }
@@ -3723,6 +4168,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       
       familyTreesIndex.forEach(tree => {
         const isActive = tree.id === activeTreeId;
+        const isLocked = !!tree.passwordHash;
         
         let nodeCount = 0;
         if (isActive) {
@@ -3748,17 +4194,29 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         row.style.padding = '10px 14px';
         row.style.marginBottom = '6px';
         
+        const lockBadge = isLocked ? `<span class="tree-lock-badge"><svg fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Locked</span>` : '';
+        
+        const passwordBtn = isLocked
+          ? `<button class="btn btn-icon" style="width:26px; height:26px; font-size:11px; position: relative;" title="Change or Remove Password" onclick="event.stopPropagation(); showPasswordMenu('${tree.id}', this)">
+              🔒
+            </button>`
+          : `<button class="btn btn-icon" style="width:26px; height:26px; font-size:11px;" title="Set Password" onclick="openPasswordSetModal('${tree.id}')">
+              🔓
+            </button>`;
+        
         row.innerHTML = `
           <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px;">
-            <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
               <strong style="font-size: 13px; color: var(--text-main); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${tree.name}</strong>
               ${isActive ? '<span class="btn-badge" style="background: var(--accent); color: var(--text-inverse); font-size: 8px; padding: 1px 4px;">Active</span>' : ''}
+              ${lockBadge}
               <span class="btn-badge" style="font-size:8px; padding: 1px 4px;">${nodeCount} members</span>
             </div>
             ${tree.description ? `<span style="font-size: 10px; color: var(--text-muted); text-overflow: ellipsis; overflow: hidden; white-space: nowrap;">${tree.description}</span>` : ''}
           </div>
           <div style="display: flex; gap: 6px; align-items: center;">
             ${!isActive ? `<button class="btn" style="padding: 4px 8px; font-size:10px;" onclick="switchTree('${tree.id}')">Switch</button>` : ''}
+            ${passwordBtn}
             <button class="btn btn-icon" style="width:26px; height:26px; font-size:11px;" title="Rename Tree" onclick="promptRenameTree('${tree.id}')">
               ✏️
             </button>
@@ -3772,6 +4230,44 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         `;
         container.appendChild(row);
       });
+    }
+
+    // Small inline menu for password-protected trees (change / remove)
+    function showPasswordMenu(treeId, btn) {
+      // Remove any existing password menu
+      document.querySelectorAll('.password-popup-menu').forEach(el => el.remove());
+      
+      const menu = document.createElement('div');
+      menu.className = 'password-popup-menu';
+      menu.style.cssText = `
+        position: absolute; right: 0; top: 100%; margin-top: 4px; z-index: 10;
+        background: var(--bg-panel); border: 1px solid var(--border-color); border-radius: 8px;
+        padding: 4px; box-shadow: var(--shadow-md); min-width: 140px; font-size: 12px;
+      `;
+      menu.innerHTML = `
+        <div style="padding: 6px 10px; cursor: pointer; border-radius: 6px; transition: background 0.15s;"
+             onmouseover="this.style.background='var(--bg-card-hover)'" onmouseout="this.style.background='transparent'"
+             onclick="document.querySelectorAll('.password-popup-menu').forEach(e=>e.remove()); openPasswordSetModal('${treeId}')">
+          🔑 Change Password
+        </div>
+        <div style="padding: 6px 10px; cursor: pointer; border-radius: 6px; color: #ef4444; transition: background 0.15s;"
+             onmouseover="this.style.background='rgba(239,68,68,0.08)'" onmouseout="this.style.background='transparent'"
+             onclick="document.querySelectorAll('.password-popup-menu').forEach(e=>e.remove()); promptRemovePassword('${treeId}')">
+          🔓 Remove Password
+        </div>
+      `;
+      
+      btn.style.position = 'relative';
+      btn.appendChild(menu);
+      
+      // Close on outside click
+      const closeMenu = (e) => {
+        if (!menu.contains(e.target) && e.target !== btn) {
+          menu.remove();
+          document.removeEventListener('click', closeMenu);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeMenu), 10);
     }
 
     function promptRenameTree(treeId) {
@@ -3793,7 +4289,8 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       const name = document.getElementById('new-tree-name').value;
       const desc = document.getElementById('new-tree-desc').value;
       const root = document.getElementById('new-tree-root').value;
-      createTree(name, desc, root);
+      const password = document.getElementById('new-tree-password').value;
+      createTree(name, desc, root, password);
     }
 
     function exportTreeJSON(treeId) {
@@ -3818,7 +4315,8 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         metadata: {
           id: treeId,
           name: name,
-          description: tree ? tree.description : ''
+          description: tree ? tree.description : '',
+          passwordHash: tree ? tree.passwordHash : undefined
         },
         nodes: treeData
       };
@@ -3867,6 +4365,12 @@ create policy "Allow public delete" on public.family_tree for delete using (true
             description: metadata.description || 'Imported from JSON'
           };
           
+          // Preserve password protection from export
+          if (metadata.passwordHash) {
+            newTreeMetadata.passwordHash = metadata.passwordHash;
+            unlockedTrees.add(newTreeId); // Auto-unlock for the importer
+          }
+          
           familyTreesIndex.push(newTreeMetadata);
           localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
           
@@ -3895,7 +4399,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
             });
           }
           
-          switchTree(newTreeId).then(() => {
+          performTreeSwitch(newTreeId).then(() => {
             closeTreeManagerModal();
             showToast(`Imported new family tree: "${newTreeMetadata.name}"`);
           });
@@ -3914,13 +4418,29 @@ create policy "Allow public delete" on public.family_tree for delete using (true
 
     // Bootstrap
     initSupabase();
-    initData().then(() => {
-      updateHistoryButtons();
-      renderTree();
-      
-      // Smooth auto fit on initial load
-      setTimeout(fitView, 250);
-    });
+    
+    // Initialize tree index first to check password protection
+    initTreesIndex();
+    
+    if (isTreeProtected(activeTreeId) && !isTreeUnlocked(activeTreeId)) {
+      // Show password gate for the initial tree
+      updateTreeHeaderUI();
+      showPasswordGate(activeTreeId, () => {
+        initData().then(() => {
+          updateHistoryButtons();
+          renderTree();
+          setTimeout(fitView, 250);
+        });
+      });
+    } else {
+      initData().then(() => {
+        updateHistoryButtons();
+        renderTree();
+        
+        // Smooth auto fit on initial load
+        setTimeout(fitView, 250);
+      });
+    }
 
   </script>
 </body>

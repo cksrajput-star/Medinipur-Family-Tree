@@ -1242,6 +1242,162 @@
       letter-spacing: 0.5px;
     }
 
+    /* ── LANDING PAGE ── */
+    .landing-page {
+      position: fixed;
+      inset: 0;
+      background: var(--bg-app);
+      z-index: 900; /* covers the app UI, but stays below modals (1000) and the password gate (2000) */
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      padding: 48px 24px 24px;
+    }
+
+    .landing-page.open {
+      display: flex;
+    }
+
+    .landing-hero {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    .landing-hero svg {
+      width: 52px;
+      height: 52px;
+      stroke: var(--accent);
+    }
+
+    .landing-title {
+      font-size: 30px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      background: linear-gradient(120deg, var(--text-main) 55%, var(--accent));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .landing-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      max-width: 480px;
+    }
+
+    .landing-tree-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 16px;
+      width: 100%;
+      max-width: 920px;
+    }
+
+    .landing-tree-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 22px 20px;
+      cursor: pointer;
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: left;
+    }
+
+    .landing-tree-card:hover {
+      border-color: var(--accent);
+      background: var(--bg-card-hover);
+      transform: translateY(-3px);
+      box-shadow: 0 12px 28px rgba(var(--accent-rgb), 0.12);
+    }
+
+    .landing-tree-name {
+      font-size: 17px;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .landing-tree-desc {
+      font-size: 12px;
+      color: var(--text-muted);
+      min-height: 16px;
+    }
+
+    .landing-tree-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 4px;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .landing-tree-enter {
+      color: var(--accent);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .landing-lock-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(251, 191, 36, 0.12);
+      color: #fbbf24;
+      font-size: 9px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 5px;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    .landing-lock-badge svg {
+      width: 9px;
+      height: 9px;
+      stroke: currentColor;
+    }
+
+    .landing-actions {
+      margin-top: 28px;
+    }
+
+    .landing-footer {
+      margin-top: auto;
+      padding-top: 36px;
+      font-size: 12px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .landing-footer strong {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    .sidebar-credit {
+      font-size: 10px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 10px 0 4px;
+      border-top: 1px solid var(--border-color);
+      margin-top: 4px;
+    }
+
     /* ── RESPONSIVE / MOBILE ── */
     @media (max-width: 768px) {
       header {
@@ -1335,6 +1491,18 @@
         max-height: 85vh;
         overflow-y: auto;
       }
+
+      .landing-page {
+        padding: 32px 16px 16px;
+      }
+
+      .landing-title {
+        font-size: 24px;
+      }
+
+      .landing-tree-grid {
+        grid-template-columns: 1fr;
+      }
     }
   </style>
 </head>
@@ -1359,6 +1527,13 @@
     </div>
 
     <div class="header-controls">
+      <!-- Home / All Trees -->
+      <button class="btn btn-icon" id="home-btn" title="All Family Trees (Home)" onclick="openLanding()">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </button>
+
+      <div class="header-divider" style="width: 1px; height: 24px; background: var(--border-color); margin: 0 8px;"></div>
+
       <!-- Layout Switchers -->
       <button class="btn btn-icon btn-active" id="layout-horiz" title="Horizontal Tree" onclick="changeLayout('horizontal')">
         <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18" stroke-linecap="round"/></svg>
@@ -1537,6 +1712,8 @@
             </button>
           </div>
         </div>
+
+        <div class="sidebar-credit">Created by <strong>Chandan Kumar Singh</strong></div>
       </div>
     </aside>
 
@@ -1858,6 +2035,36 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       <div class="modal-buttons" style="border-top: 1px solid var(--border-color); padding-top: 16px; margin-top: 16px;">
         <button type="button" class="btn" onclick="closeTreeManagerModal()" style="margin-left: auto;">Close</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Landing Page (family tree picker shown on startup) -->
+  <div class="landing-page" id="landing-page">
+    <div class="landing-hero">
+      <svg viewBox="0 0 24 24" fill="none" stroke-width="1.5">
+        <path d="M12 22C17.5228 22 22 17.5228 22 12C22 6.47715 17.5228 2 12 2C6.47715 2 2 6.47715 2 12C2 17.5228 6.47715 22 12 22Z" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M12 6V18" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 10C8.5 11 9.5 12 12 12C14.5 12 15.5 11 16 10" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M8 14C8.5 13 9.5 12 12 12C14.5 12 15.5 13 16 14" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <div class="landing-title">Medinipur Family Trees</div>
+      <div class="landing-subtitle">Explore the family lineages of Medinipur. Select a family tree below to view its members, generations, and history.</div>
+    </div>
+
+    <div class="landing-tree-grid" id="landing-tree-list">
+      <!-- Populated dynamically -->
+    </div>
+
+    <div class="landing-actions">
+      <button class="btn btn-primary" onclick="openTreeManagerModal()">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
+        Create / Manage Family Trees
+      </button>
+    </div>
+
+    <div class="landing-footer">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="var(--accent)"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>
+      Created by <strong>Chandan Kumar Singh</strong>
     </div>
   </div>
 
@@ -2493,14 +2700,16 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     async function performTreeSwitch(treeId) {
       activeTreeId = treeId;
       localStorage.setItem('active_tree_id', activeTreeId);
-      
+
       historyStack = [];
       redoStack = [];
       updateHistoryButtons();
-      
+
       closeInspector();
       clearSearch();
       collapsedIds.clear();
+
+      hideLanding(); // Entering a tree always leaves the landing page
 
       showLoadingOverlay(true, "Switching family tree...");
       try {
@@ -2514,6 +2723,67 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       } finally {
         showLoadingOverlay(false);
       }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    //  LANDING PAGE (family tree picker)
+    // ═══════════════════════════════════════════════════════════
+    function getTreeMemberCount(tree) {
+      if (tree.id === activeTreeId && familyData.length > 0) return familyData.length;
+      const stored = localStorage.getItem(`family_tree_data_${tree.id}`);
+      if (stored) {
+        try { return JSON.parse(stored).length; } catch (e) {}
+      }
+      if (tree.id === 'singh-vansh') return RAW_NODES.length;
+      return 0;
+    }
+
+    function renderLandingPage() {
+      const container = document.getElementById('landing-tree-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      familyTreesIndex.forEach(tree => {
+        const isLocked = !!tree.passwordHash;
+        const memberCount = getTreeMemberCount(tree);
+
+        const card = document.createElement('div');
+        card.className = 'landing-tree-card';
+        card.innerHTML = `
+          <div class="landing-tree-name">
+            ${escapeHtml(tree.name)}
+            ${isLocked ? `<span class="landing-lock-badge"><svg fill="none" stroke-width="2.5" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>Protected</span>` : ''}
+          </div>
+          <div class="landing-tree-desc">${escapeHtml(tree.description || '')}</div>
+          <div class="landing-tree-meta">
+            <span>${memberCount} member${memberCount === 1 ? '' : 's'}</span>
+            <span class="landing-tree-enter">View Tree
+              <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </span>
+          </div>
+        `;
+        card.onclick = () => enterTreeFromLanding(tree.id);
+        container.appendChild(card);
+      });
+    }
+
+    function openLanding() {
+      renderLandingPage();
+      document.getElementById('landing-page').classList.add('open');
+    }
+
+    function hideLanding() {
+      document.getElementById('landing-page').classList.remove('open');
+    }
+
+    function enterTreeFromLanding(treeId) {
+      if (isTreeProtected(treeId) && !isTreeUnlocked(treeId)) {
+        showPasswordGate(treeId, () => {
+          performTreeSwitch(treeId);
+        });
+        return;
+      }
+      performTreeSwitch(treeId);
     }
 
     function getActiveTreeName() {
@@ -4327,19 +4597,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         const isActive = tree.id === activeTreeId;
         const isLocked = !!tree.passwordHash;
         
-        let nodeCount = 0;
-        if (isActive) {
-          nodeCount = familyData.length;
-        } else {
-          const stored = localStorage.getItem(`family_tree_data_${tree.id}`);
-          if (stored) {
-            try {
-              nodeCount = JSON.parse(stored).length;
-            } catch(e) {}
-          } else if (tree.id === 'singh-vansh') {
-            nodeCount = RAW_NODES.length;
-          }
-        }
+        const nodeCount = getTreeMemberCount(tree);
         
         const row = document.createElement('div');
         row.style.display = 'flex';
@@ -4581,28 +4839,15 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     applyResponsiveDefaults();
     initSupabase();
 
-    // Initialize tree index first to check password protection
+    // Initialize tree index first so the landing page can list every tree
     initTreesIndex();
 
-    if (isTreeProtected(activeTreeId) && !isTreeUnlocked(activeTreeId)) {
-      // Show password gate for the initial tree
-      updateTreeHeaderUI();
-      showPasswordGate(activeTreeId, () => {
-        initData().then(() => {
-          updateHistoryButtons();
-          renderTree();
-          setTimeout(fitView, 250);
-        });
-      });
-    } else {
-      initData().then(() => {
-        updateHistoryButtons();
-        renderTree();
-        
-        // Smooth auto fit on initial load
-        setTimeout(fitView, 250);
-      });
-    }
+    updateTreeHeaderUI();
+    updateHistoryButtons();
+
+    // Start on the landing page: the user picks a family tree (entering a password
+    // if the tree is protected) and only then is that tree's data loaded.
+    openLanding();
 
   </script>
 </body>

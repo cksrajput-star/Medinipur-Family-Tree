@@ -2219,6 +2219,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         delete tree.passwordHash;
       }
       localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+      await upsertTreeMetaToDb(tree);
     }
 
     function removeTreePassword(treeId) {
@@ -2227,6 +2228,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       delete tree.passwordHash;
       unlockedTrees.delete(treeId);
       localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+      upsertTreeMetaToDb(tree);
     }
 
     async function verifyTreePassword(treeId, password) {
@@ -2683,6 +2685,136 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       }
     }
 
+    // ═══════════════════════════════════════════════════════════
+    //  TREE REGISTRY SYNC
+    // ═══════════════════════════════════════════════════════════
+    // The list of which family trees exist used to live only in this browser's
+    // localStorage, so a tree created on one device stayed invisible everywhere
+    // else even though its members were safely in the database. The registry now
+    // travels in the same `family_tree` table: each tree gets one row with a
+    // NEGATIVE id holding its metadata. Member ids are always positive (1-126 from
+    // the bundled data, Date.now() for anything added later), so the two never
+    // collide and no database schema change is needed.
+    const TREE_META_MARKER = '__tree_meta__';
+
+    // Stable negative id per tree, so re-saving updates the same row.
+    function treeMetaRowId(treeId) {
+      let h = 5381;
+      for (let i = 0; i < treeId.length; i++) {
+        h = ((h * 33) ^ treeId.charCodeAt(i)) >>> 0;
+      }
+      return -(h + 1);
+    }
+
+    function treeMetaToRow(tree) {
+      return {
+        id: treeMetaRowId(tree.id),
+        tree_id: tree.id,
+        name: tree.name || 'Untitled Family Tree',
+        parent_id: null,
+        gender: TREE_META_MARKER,
+        spouse: '', nickname: '', location: '',
+        notes: JSON.stringify({
+          description: tree.description || '',
+          passwordHash: tree.passwordHash || null
+        }),
+        birthYear: '', deathYear: '', isLiving: true
+      };
+    }
+
+    function rowToTreeMeta(row) {
+      let description = '', passwordHash = null;
+      try {
+        const parsed = JSON.parse(row.notes || '{}');
+        description = parsed.description || '';
+        passwordHash = parsed.passwordHash || null;
+      } catch (e) { /* older row, treat as no metadata */ }
+      const tree = { id: row.tree_id, name: row.name, description };
+      if (passwordHash) tree.passwordHash = passwordHash;
+      return tree;
+    }
+
+    // Saves one tree's metadata to the database. No-op when running local-only.
+    async function upsertTreeMetaToDb(treeOrId) {
+      if (!isDbConnected || !supabase || !hasTreeIdColumnInDb) return;
+      const tree = (typeof treeOrId === 'string')
+        ? familyTreesIndex.find(t => t.id === treeOrId)
+        : treeOrId;
+      if (!tree) return;
+      try {
+        const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
+        const { error } = await supabase.from(tableName).upsert(treeMetaToRow(tree));
+        if (error) throw error;
+      } catch (e) {
+        console.error(`Could not save the tree "${tree.name}" to the database`, e);
+      }
+    }
+
+    // Reconciles the local tree list with the database in both directions.
+    async function syncTreesIndexFromDb() {
+      if (!isDbConnected || !supabase || !hasTreeIdColumnInDb) return;
+
+      try {
+        const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
+        const { data, error } = await supabase.from(tableName).select('id, tree_id, name, notes');
+        if (error) throw error;
+        if (!data) return;
+
+        let changed = false;
+
+        // 1. Adopt every tree the database has metadata for.
+        data.filter(r => r.id < 0 && r.tree_id).forEach(row => {
+          const remote = rowToTreeMeta(row);
+          const local = familyTreesIndex.find(t => t.id === remote.id);
+          if (!local) {
+            familyTreesIndex.push(remote);
+            changed = true;
+          } else if (local.name !== remote.name ||
+                     (local.description || '') !== (remote.description || '')) {
+            local.name = remote.name;
+            local.description = remote.description;
+            changed = true;
+          }
+        });
+
+        // 2. Rescue orphans: members exist under a tree_id no list knows about,
+        //    because the tree was created before this sync existed.
+        const known = new Set(familyTreesIndex.map(t => t.id));
+        const orphans = new Set();
+        data.forEach(r => {
+          if (r.id > 0 && r.tree_id && !known.has(r.tree_id)) orphans.add(r.tree_id);
+        });
+        orphans.forEach(treeId => {
+          familyTreesIndex.push({
+            id: treeId,
+            name: `Recovered Tree (${treeId.slice(0, 16)})`,
+            description: 'Recovered from the database — use Rename to give it its proper name.'
+          });
+          changed = true;
+        });
+
+        if (changed) localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+
+        // 3. Push up any tree that so far only exists in this browser.
+        const remoteIds = new Set(data.filter(r => r.id < 0).map(r => r.tree_id));
+        for (const tree of familyTreesIndex) {
+          if (!remoteIds.has(tree.id)) await upsertTreeMetaToDb(tree);
+        }
+
+        if (changed) {
+          updateTreeHeaderUI();
+          renderLandingPage();
+          renderTreeManagerList();
+          const recovered = orphans.size;
+          if (recovered > 0) {
+            showToast(`Recovered ${recovered} family tree${recovered === 1 ? '' : 's'} from the database`);
+          }
+        }
+      } catch (e) {
+        console.error("Could not sync the family tree list with the database", e);
+      }
+    }
+
     async function switchTree(treeId) {
       if (treeId === activeTreeId) return;
       
@@ -2880,6 +3012,8 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         }
       }
       
+      await upsertTreeMetaToDb(newTreeMetadata);
+
       await performTreeSwitch(newTreeId);
       closeTreeManagerModal();
       showToast(`Created new family tree: "${name.trim()}"`);
@@ -2895,6 +3029,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         tree.name = newName.trim();
         tree.description = newDescription.trim();
         localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+        upsertTreeMetaToDb(tree);
         updateTreeHeaderUI();
         renderTreeManagerList();
         showToast("Family Tree updated successfully");
@@ -3001,7 +3136,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       showLoadingOverlay(true, "Pulling database data...");
       try {
         const tableName = localStorage.getItem('supabase_table') || DB_CONFIG.tableName;
-        let query = supabase.from(tableName).select('*');
+        let query = supabase.from(tableName).select('*').gt('id', 0); // skip registry rows
         if (hasTreeIdColumnInDb) {
           query = query.eq('tree_id', activeTreeId);
         }
@@ -3043,6 +3178,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
             .from(tableName)
             .select('*')
             .eq('tree_id', activeTreeId)
+            .gt('id', 0) // skip tree-registry rows, which use negative ids
             .order('id', { ascending: true });
 
           if (error && error.code === '42703') {
@@ -3051,6 +3187,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
             const fallbackResult = await supabase
               .from(tableName)
               .select('*')
+              .gt('id', 0) // skip tree-registry rows, which use negative ids
               .order('id', { ascending: true });
             
             if (fallbackResult.error) throw fallbackResult.error;
@@ -4788,6 +4925,7 @@ create policy "Allow public delete" on public.family_tree for delete using (true
           
           familyTreesIndex.push(newTreeMetadata);
           localStorage.setItem('family_trees_index', JSON.stringify(familyTreesIndex));
+          upsertTreeMetaToDb(newTreeMetadata);
           
           const parsedNodes = nodes.map(parseRawNode);
           localStorage.setItem(`family_tree_data_${newTreeId}`, JSON.stringify(parsedNodes));
@@ -4848,6 +4986,10 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     // Start on the landing page: the user picks a family tree (entering a password
     // if the tree is protected) and only then is that tree's data loaded.
     openLanding();
+
+    // Then reconcile the tree list with the database, so trees made on another
+    // device appear here (and trees made here become visible there).
+    syncTreesIndexFromDb();
 
   </script>
 </body>

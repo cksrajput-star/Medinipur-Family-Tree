@@ -2060,6 +2060,10 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" stroke-linecap="round"/></svg>
         Create / Manage Family Trees
       </button>
+      <button class="btn" onclick="manualSyncTrees()" title="Look for family trees saved on another device" style="margin-left: 8px;">
+        <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v6h6M20 20v-6h-6M20 9A8 8 0 006 5.3L4 7m0 8a8 8 0 0014 3.7l2-1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        Find Trees From Other Devices
+      </button>
     </div>
 
     <div class="landing-footer">
@@ -2751,6 +2755,31 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     }
 
     // Reconciles the local tree list with the database in both directions.
+    // User-triggered version of the sync, with visible feedback. Reconnects first
+    // if the automatic attempt at startup could not reach the database.
+    async function manualSyncTrees() {
+      if (!isDbConnected || !supabase) {
+        showLoadingOverlay(true, "Connecting to the database...");
+        try { await initSupabase(); } catch (e) { console.error(e); }
+        showLoadingOverlay(false);
+      }
+      if (!isDbConnected || !supabase) {
+        showToast("Could not reach the database — check Database Settings.", true);
+        return;
+      }
+
+      showLoadingOverlay(true, "Looking for family trees in the database...");
+      const before = familyTreesIndex.length;
+      try {
+        await syncTreesIndexFromDb();
+        if (familyTreesIndex.length === before) {
+          showToast("No other family trees found in the database.");
+        }
+      } finally {
+        showLoadingOverlay(false);
+      }
+    }
+
     async function syncTreesIndexFromDb() {
       if (!isDbConnected || !supabase || !hasTreeIdColumnInDb) return;
 
@@ -4975,7 +5004,6 @@ create policy "Allow public delete" on public.family_tree for delete using (true
 
     // Bootstrap
     applyResponsiveDefaults();
-    initSupabase();
 
     // Initialize tree index first so the landing page can list every tree
     initTreesIndex();
@@ -4987,9 +5015,11 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     // if the tree is protected) and only then is that tree's data loaded.
     openLanding();
 
-    // Then reconcile the tree list with the database, so trees made on another
-    // device appear here (and trees made here become visible there).
-    syncTreesIndexFromDb();
+    // Connect to the database, THEN reconcile the tree list. initSupabase() loads
+    // its SDK over the network, so the sync has to wait for it to finish - firing
+    // both at once meant the sync ran while isDbConnected was still false and
+    // quietly did nothing, which is why trees from other devices never appeared.
+    initSupabase().then(syncTreesIndexFromDb);
 
   </script>
 </body>

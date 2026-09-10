@@ -1504,6 +1504,14 @@
         grid-template-columns: 1fr;
       }
     }
+    .landing-search { width: min(100%, 680px); margin: 0 auto 24px; }
+    .landing-search input { padding-left: 16px; }
+    .search-results { max-height: 300px; overflow-y: auto; margin-top: 10px; }
+    .search-result { display: block; width: 100%; text-align: left; padding: 10px 12px; margin-top: 6px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-panel); color: var(--text-main); cursor: pointer; font: inherit; }
+    .search-result small { display: block; color: var(--text-muted); margin-top: 4px; }
+    .search-feedback { color: var(--text-muted); font-size: 12px; padding: 8px 0; }
+    .landing-tree-card:focus-visible, .search-result:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+    .search-result:hover { border-color: var(--accent); }
   </style>
 </head>
 <body>
@@ -1604,10 +1612,12 @@
       <div class="sidebar-content">
         <!-- Search -->
         <div class="search-wrapper">
-          <input type="text" class="search-input" id="search-input" placeholder="Search members by name..." oninput="handleSearch(this.value)">
+          <input type="text" class="search-input" id="search-input" aria-label="Search family members" placeholder="Name, nickname, spouse or place..." oninput="handleSearch(this.value)">
           <svg class="search-icon" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           <svg class="search-clear" id="search-clear" onclick="clearSearch()" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12" stroke-linecap="round"/></svg>
         </div>
+
+        <div id="member-search-results" class="search-results" aria-label="Member search results"></div>
 
         <!-- Family Trees -->
         <div class="panel-section">
@@ -2047,10 +2057,14 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         <path d="M8 10C8.5 11 9.5 12 12 12C14.5 12 15.5 11 16 10" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M8 14C8.5 13 9.5 12 12 12C14.5 12 15.5 13 16 14" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      <div class="landing-title">Medinipur Family Trees</div>
-      <div class="landing-subtitle">Explore the family lineages of Medinipur. Select a family tree below to view its members, generations, and history.</div>
+      <div class="landing-title">Your family trees</div>
+      <div class="landing-subtitle">Discover your roots, reconnect with relatives, and keep your family’s stories together. Choose a tree to begin.</div>
     </div>
 
+    <div class="landing-search">
+      <input type="search" class="search-input" id="tree-search" aria-label="Find a family tree" placeholder="Find a family tree by name or description…" oninput="renderLandingPage()">
+      <div id="tree-search-status" class="search-feedback" role="status"></div>
+    </div>
     <div class="landing-tree-grid" id="landing-tree-list">
       <!-- Populated dynamically -->
     </div>
@@ -2789,6 +2803,12 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         if (error) throw error;
         if (!data) return;
 
+        remoteTreeMemberCounts.clear();
+        data.forEach(row => {
+          if (row.tree_id && !remoteTreeMemberCounts.has(row.tree_id)) remoteTreeMemberCounts.set(row.tree_id, 0);
+          if (row.id > 0 && row.tree_id) remoteTreeMemberCounts.set(row.tree_id, remoteTreeMemberCounts.get(row.tree_id) + 1);
+        });
+        renderLandingPage();
         let changed = false;
 
         // 1. Adopt every tree the database has metadata for.
@@ -2889,7 +2909,10 @@ create policy "Allow public delete" on public.family_tree for delete using (true
     // ═══════════════════════════════════════════════════════════
     //  LANDING PAGE (family tree picker)
     // ═══════════════════════════════════════════════════════════
+    const remoteTreeMemberCounts = new Map();
+
     function getTreeMemberCount(tree) {
+      if (remoteTreeMemberCounts.has(tree.id) && tree.id !== activeTreeId) return remoteTreeMemberCounts.get(tree.id);
       if (tree.id === activeTreeId && familyData.length > 0) return familyData.length;
       const stored = localStorage.getItem(`family_tree_data_${tree.id}`);
       if (stored) {
@@ -2904,12 +2927,26 @@ create policy "Allow public delete" on public.family_tree for delete using (true
       if (!container) return;
       container.innerHTML = '';
 
-      familyTreesIndex.forEach(tree => {
+      const query = (document.getElementById('tree-search').value || '').trim().toLocaleLowerCase();
+      const trees = familyTreesIndex.filter(tree => `${tree.name} ${tree.description || ''}`.toLocaleLowerCase().includes(query));
+      document.getElementById('tree-search-status').textContent = trees.length
+        ? `${trees.length} family tree${trees.length === 1 ? '' : 's'}`
+        : 'No matching trees. Try another name, or use Find Trees From Other Devices below.';
+      trees.forEach(tree => {
         const isLocked = !!tree.passwordHash;
         const memberCount = getTreeMemberCount(tree);
 
         const card = document.createElement('div');
         card.className = 'landing-tree-card';
+        card.tabIndex = 0;
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', `View ${tree.name}`);
+        card.onkeydown = event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            enterTreeFromLanding(tree.id);
+          }
+        };
         card.innerHTML = `
           <div class="landing-tree-name">
             ${escapeHtml(tree.name)}
@@ -3897,6 +3934,8 @@ create policy "Allow public delete" on public.family_tree for delete using (true
         d3.selectAll('.family-card').classed('search-highlight', false);
         d3.selectAll('.link').classed('search-match', false);
 
+        const results = document.getElementById('member-search-results');
+        results.replaceChildren();
         if (!q) return;
 
         // Find matches (fields may be null/undefined on records loaded straight from the DB)
@@ -3907,21 +3946,43 @@ create policy "Allow public delete" on public.family_tree for delete using (true
           (n.spouse || '').toLowerCase().includes(q)
         );
 
-        if (matches.length > 0) {
-          // Highlight nodes in tree
-          matches.forEach(m => {
-            const card = document.getElementById(`card-${m.id}`);
-            if (card) card.classList.add('search-highlight');
-          });
-
-          // Zoom to the first matched card
-          zoomToNode(matches[0].id);
-          selectNodeCard(matches[0]);
-        }
+        const status = document.createElement('div');
+        status.className = 'search-feedback';
+        status.setAttribute('role', 'status');
+        status.textContent = matches.length ? `${matches.length} matching member${matches.length === 1 ? '' : 's'}. Select a name to view.` : 'No members found. Try a name, nickname or place.';
+        results.appendChild(status);
+        matches.forEach(member => {
+          const button = document.createElement('button');
+          button.className = 'search-result';
+          button.type = 'button';
+          button.textContent = member.name || 'Unnamed member';
+          const detail = document.createElement('small');
+          const parent = familyData.find(n => n.id === member.parent_id);
+          detail.textContent = [member.location, parent ? `Child of ${parent.name}` : 'Root member'].filter(Boolean).join(' · ');
+          button.appendChild(detail);
+          button.onclick = () => {
+            // Reveal the branch before locating a member hidden by a collapsed ancestor.
+            const visited = new Set();
+            let current = member;
+            while (current && !visited.has(current.id)) {
+              visited.add(current.id);
+              collapsedIds.delete(current.id);
+              current = familyData.find(n => n.id === current.parent_id);
+            }
+            renderTree();
+            zoomToNode(member.id);
+            selectNodeCard(member);
+          };
+          results.appendChild(button);
+          const card = document.getElementById(`card-${member.id}`);
+          if (card) card.classList.add('search-highlight');
+        });
       }, 250);
     }
 
     function clearSearch() {
+      clearTimeout(searchTimeout);
+      document.getElementById('member-search-results').replaceChildren();
       document.getElementById('search-input').value = '';
       document.getElementById('search-clear').style.display = 'none';
       d3.selectAll('.family-card').classed('search-highlight', false);

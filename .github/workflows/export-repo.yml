@@ -1,0 +1,21 @@
+name: Export repository for backup
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/export-repo.yml'
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Medinipur-Family-Tree-repository
+          path: |
+            .gitignore
+            MedinipurFamily.xlsx
+            index.html
+            vendor/
+          include-hidden-files: true
+          retention-days: 1
